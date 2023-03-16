@@ -1,4 +1,0 @@
-"0","highschool_att<-read.csv(""Highschool_network_att.csv"",header = TRUE) facebook_edge<-read.csv(""Facebook_network_edge.csv"",header=FALSE) 
-"
-"2","Error: unexpected symbol in ""highschool_att<-read.csv(""Highschool_network_att.csv"",header = TRUE) facebook_edge""
-"
