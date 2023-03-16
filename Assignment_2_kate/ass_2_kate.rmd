@@ -10,10 +10,10 @@ library('intergraph')
 Type any R code in the chunk, for example:
 ```{r}
 #read data from the folder data
-highschool_edge<-read.csv("Assignment_2/data/Highschool_network_edge.csv")
-highschool_att <- read.csv("Assignment_2/data/Highschool_network_att.csv")
-facebook_att <- read.csv("Assignment_2/data/Facebook_network_att.csv")
-facebook_edge <- read.csv("Assignment_2/data/Facebook_network_edge.csv")
+highschool_edge<-read.csv("Assignment_2_kate/data/Highschool_network_edge.csv")
+highschool_att <- read.csv("Assignment_2_kate/data/Highschool_network_att.csv")
+facebook_att <- read.csv("Assignment_2_kate/data/Facebook_network_att.csv")
+facebook_edge <- read.csv("Assignment_2_kate/data/Facebook_network_edge.csv")
 ```
 
 ```{r}
