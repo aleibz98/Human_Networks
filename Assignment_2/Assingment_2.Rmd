@@ -16,10 +16,10 @@ library(visNetwork)
 ```
 
 ```{r}
-highschool_edge<-read.csv("data/Highschool_network_edge.csv")
-highschool_att <- read.csv("data/Highschool_network_att.csv")
-facebook_att <- read.csv("data/Facebook_network_att.csv")
-facebook_edge <- read.csv("data/Facebook_network_edge.csv")
+highschool_edge<-read.csv("Assignment_2/data/Highschool_network_edge.csv")
+highschool_att <- read.csv("Assignment_2/data/Highschool_network_att.csv")
+facebook_att <- read.csv("Assignment_2/data/Facebook_network_att.csv")
+facebook_edge <- read.csv("Assignment_2/data/Facebook_network_edge.csv")
 ```
 
 ```{r}
