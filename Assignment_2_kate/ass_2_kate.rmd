@@ -6,14 +6,16 @@ library('network')
 library('intergraph')
 #comments
 ```
+```{
+```
 
 Type any R code in the chunk, for example:
 ```{r}
 #read data from the folder data
-highschool_edge<-read.csv("Assignment_2_kate/data/Highschool_network_edge.csv")
-highschool_att <- read.csv("Assignment_2_kate/data/Highschool_network_att.csv")
-facebook_att <- read.csv("Assignment_2_kate/data/Facebook_network_att.csv")
-facebook_edge <- read.csv("Assignment_2_kate/data/Facebook_network_edge.csv")
+highschool_edge<-read.csv("Human_networks/Assignment_2_kate/data/Highschool_network_edge.csv")
+highschool_att <- read.csv("Human_networks/Assignment_2_kate/data/Highschool_network_att.csv")
+facebook_att <- read.csv("Human_networks/Assignment_2_kate/data/Facebook_network_att.csv")
+facebook_edge <- read.csv("Human_networks/Assignment_2_kate/data/Facebook_network_edge.csv")
 #check that it works!
 ```
 ```{r}
@@ -257,15 +259,138 @@ modularity(hall.clustering)
 Louv<-cluster_louvain(Highschool)
 modularity(Louv)
 
-
-
-
-
-
-
 ```
 ```{r}
 ### Louvain algorithm ###
 Louv<-cluster_louvain(Facebook)
 modularity(Louv)
+```
+Exercise two: Network formation models
+Network relationships come in many shapes and sizes, and so there is no single model which encompasses them all.
+But over time, people do summarize some common paradigm that can be used to build a synthetic network.
+In the lecture, we mentioned three major architectures to build a synthetic network, which is Erdos-Renyi Random Graph Model,
+Small-world Random Graph Model, and Barabasi-Albert (BA) model.
+
+
+```{r}
+sample_gnp(20, 0.1, directed = FALSE, loops = FALSE)
+#visualize the network
+plot(sample_gnp(20, 0.1, directed = FALSE, loops = FALSE),vertex.label=NA)
+#add the name of the plot
+title(main="ER1")
+```
+```{r}
+ER1 <-sample_gnp(20, 0.1, directed = FALSE, loops = FALSE)
+plot((ER1), vertex.label=NA)
+#add the name of the plot
+title(main="ER1")
+```
+```{r}
+
+ER2 <- sample_gnp(20, 0.2, directed = FALSE, loops = FALSE)
+plot((ER2),vertex.label=NA)
+#add the name of the plot
+title(main="ER2")
+```
+```{r}
+ER3 <-sample_gnp(20, 0.3, directed = FALSE, loops = FALSE)
+plot((ER2),vertex.label=NA)
+#add the name of the plot
+title(main="ER3")
+```
+```{r}
+#average degree of the ER1
+mean(degree(ER1))
+```
+```{r}
+mean(degree(ER2))
+```
+```{r}
+mean(degree(ER3))
+```
+```{r}
+#minimum degree of the ER1
+min(degree(ER1))
+```
+```{r}
+min(degree(ER2))
+```
+```{r}
+min(degree(ER3))
+```
+```{r}
+#maximum degree of the ER1
+max(degree(ER1))
+```
+```{r}
+max(degree(ER2))
+```
+```{r}
+max(degree(ER3))
+```
+```{r}
+ER1000 <-sample_gnp(1000, 0.1, directed = FALSE, loops = FALSE)
+plot((ER1000), vertex.label=NA)
+#add the name of the plot
+title(main="ER1000")
+
+```
+```{r}
+transitivity(ER1000)
+```
+```{r}
+ER1000_2 <-sample_gnp(1000, 0.2, directed = FALSE, loops = FALSE)
+ER1000_3 <-sample_gnp(1000, 0.3, directed = FALSE, loops = FALSE)
+ER1000_4 <-sample_gnp(1000, 0.4, directed = FALSE, loops = FALSE)
+ER1000_5 <-sample_gnp(1000, 0.5, directed = FALSE, loops = FALSE)
+ER1000_9 <-sample_gnp(1000, 0.9, directed = FALSE, loops = FALSE)
+# plot((ER1000_2), vertex.label=NA)
+#add the name of the plot
+# title(main="ER1000_2")
+
+```
+```{r}
+# transitivity(ER1000_2)
+transitivity(ER1000_9)
+```
+```{r}
+Regular<-watts.strogatz.game(dim=1,size=300,nei=6, p=0)
+plot(Regular, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with zero rewiring probability ")
+SW1<-watts.strogatz.game(dim=1,size=300,nei=6, p=0.001)
+plot(SW1, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with 0.001 rewiring probability ")
+SW2<-watts.strogatz.game(dim=1,size=300,nei=6, p=0.01)
+plot(SW2, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with 0.01 rewiring probability ")
+SW3<-watts.strogatz.game(dim=1,size=300,nei=6, p=0.1)
+plot(SW3, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with 0.1 rewiring probability ")
+
+```
+```{r}
+transitivity(Regular)
+```
+```{r}
+transitivity(SW1)
+```
+```{r}
+transitivity(SW2)
+```
+```{r}
+transitivity(SW3)
+```
+```{r}
+#calculate teh averahe path length
+mean_distance(Regular)
+```
+```{r}
+mean_distance(SW1)
+```
+```{r}
+mean_distance(SW2)
+```
+```{r}
+mean_distance(SW3)
+
+```
+Question 8
+```{r}
+
 ```
