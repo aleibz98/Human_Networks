@@ -14,6 +14,10 @@ highschool_edge<-read.csv("Assignment_2_kate/data/Highschool_network_edge.csv")
 highschool_att <- read.csv("Assignment_2_kate/data/Highschool_network_att.csv")
 facebook_att <- read.csv("Assignment_2_kate/data/Facebook_network_att.csv")
 facebook_edge <- read.csv("Assignment_2_kate/data/Facebook_network_edge.csv")
+#check that it works!
+```
+```{r}
+highschool_att
 ```
 
 ```{r}
@@ -74,10 +78,16 @@ V(Highschool)[which.max(closeness(Highschool))]
 ```
 ```{r}
 #find the node with the highest eigen
-which.max(as.numeric(unlist(eigen_centrality(Highschool))))
-
-
+eigen_centrality(Highschool)
+V(Highschool)[which.max(eigen_centrality(Highschool))] #110
+#
+# #the highest degree node is 110
+#
+# #find the maximum in data frame
+# max(eigen_centrality(Highschool))
 ```
+
+
 Question 2 (5 points):
 •	Study the correlations between a) degree and betweenness, b) degree and closeness, c) degree and eigenvector for all the nodes in the Highschool network;
 •	Study the correlations between a) degree and betweenness, b) degree and closeness, c) degree and eigenvector for all the nodes in the Facebook network;
@@ -93,7 +103,8 @@ cor.test(degree(Highschool),closeness(Highschool))
 ```
 ```{r}
 #check the correlation between degree and eigenvector
-cor.test(degree(Highschool),eigen_centrality(Highschool))
+eigen_hs <- eigen_centrality(Highschool)$vector
+cor.test(degree(Highschool),eigen_hs)
 ```
 ```{r}
 #check the correlation between degree and betweenness
@@ -105,15 +116,25 @@ cor.test(degree(Facebook),closeness(Facebook))
 ```
 ```{r}
 #check the correlation between degree and eigenvector and add the trand line
-cor.test(degree(Facebook),eigen_centrality(Facebook))
+eigen_fb <- eigen_centrality(Facebook)$vector
+cor.test(degree(Facebook),eigen_fb)
 ```
 ```{r}
 # cor.test(degree(Facebook),eigen_centrality(Facebook))
 #add the trand line to the plot
 # abline(lm(degree(Highschool)~betweenness(Highschool)),col="red")
 
-#make a scatter plot for degree and closeness and add the trand line to it
-plot(degree(Highschool),closeness(Highschool),xlab="degree",ylab="closeness")
+#make a scatter plot for degree and closeness and add the trand line
+plot(degree(Highschool),closeness(Highschool),xlab="Degree",ylab="Closeness")
+abline(lm(closeness(Highschool)~degree(Highschool)),col="red")
+#make the confident interval for the trand line with grey color
+```
+
+
+
+```{r}
+#make a scatter plot for degree and closeness for Facebook
+plot(degree(Highschool),betweenness(Highschool),xlab="Degree",ylab="Closeness")
 abline(lm(closeness(Highschool)~degree(Highschool)),col="red")
 ```
 ```{r}
@@ -134,17 +155,22 @@ distances(
 ```
 ```{r}
 #make a histogram of the shortest path lengths between every pair of two nodes in Highschool network with percentiles
-hist(distances(Highschool),xlab="shortest path length",ylab="frequency",main="Histogram of the shortest path lengths between every pair of two nodes in Highschool network",breaks=100,prob=T)
+hist(distances(Highschool),xlab="shortest path length",ylab="% of total cout by group",main="Histogram of the shortest path lengths between every pair of two nodes in Highschool network",breaks=10,prob=T)
+#add percentiles and add the value of the percentiles to the plot
+abline(v=quantile(distances(Highschool),c(0.25,0.5,0.75)),col="red")
+text(quantile(distances(Highschool),c(0.25,0.5,0.75)),c(0.1,0.1,0.1),labels=quantile(distances(Highschool),c(0.25,0.5,0.75)),col="red")
 ```
 ```{r}
-#make a histogram of degree distribution in Highschool network with percentiles
-hist(degree(Highschool),xlab="degree",ylab="frequency",main="Histogram of degree distribution in Highschool network",breaks=100,prob=T)
+hist(distances(Facebook),xlab="shortest path length",ylab="% of total cout by group",main="Histogram of the shortest path lengths between every pair of two nodes in Facebook network",breaks=10,prob=T)
+#add percentiles and add the value of the percentiles to the plot
+abline(v=quantile(distances(Facebook),c(0.25,0.5,0.75)),col="red")
+text(quantile(distances(Facebook),c(0.25,0.5,0.75)),c(0.1,0.1,0.1),labels=quantile(distances(Facebook),c(0.25,0.5,0.75)),col="red")
 ```
+
 
 Test the above hypothesis by the following steps (Question 4, 4 points):
 ```{r}
 #visualize the Highschool network by gender
-## visualize the network by gender###
 library(RColorBrewer)
 coul  <- brewer.pal(length(unique( V(Highschool)$gender)), "Set2")
 my_color <- coul[as.numeric(as.factor(V(Highschool)$gender))]
@@ -153,13 +179,38 @@ plot(Highschool, vertex.color = my_color,
      vertex.size=5,
      layout=layout.fruchterman.reingold(Highschool),vertex.label=NA,
      main="Highschool network by gender")
+#add the legend of the color of the nodes at the top left corner
+legend("bottomleft", legend=levels(as.factor(V(Highschool)$gender)) ,col = coul , bty = "n", pch=200 , pt.cex = 1.5, cex = 1.5, horiz = FALSE, inset = c(0.1, 0.1))
+```
+```{r}
+#visualize the Highschool network by residentil area
+coul  <- brewer.pal(length(unique(V(Highschool)$hall)), "Set2")
+my_color <- coul[as.numeric(as.factor(V(Highschool)$hall))]
+set.seed(10)
+plot(Highschool, vertex.color = my_color,
+     vertex.size=5,
+     layout=layout.fruchterman.reingold(Highschool),vertex.label=NA,
+     main="Highschool network by Hall")
+#add the legend of the color of the nodes at the top left corner
 legend("bottomleft", legend=levels(as.factor(V(Highschool)$gender)) ,col = coul , bty = "n", pch=20 , pt.cex = 1.5, cex = 1.5, horiz = FALSE, inset = c(0.1, 0.1))
+```
+```{r}
+#introduce subgraph by gender = F, calculate their edge densities
+group_female <- as.factor(unique(V(Highschool)$gender=='female'))
+sapply(levels(group_female), function(x) {
+  y <- induced_subgraph(Highschool, which(V(Highschool)$gender==x))
+  paste0("Density for ", x, " friends is ", edge_density(y))
+})
 
 
 
-
-
-
+```
+```{r}
+group <- as.factor(unique(V(Highschool)$hall))
+sapply(levels(group), function(x) {
+  y <- induced_subgraph(Highschool, which(V(Highschool)$hall==x))
+  paste0("Density for ", x, " friends is ", edge_density(y))
+})
 ```
 ```{r}
 #introduce subgraph by gender, calculate their edge densities
@@ -175,7 +226,8 @@ Question 5 (4 points):
 2)	Search the Louvain Community Detection and explain the algorithm in your own words.
 3)	Use the Louvain Community Detection to identify communities in the Highschool network. Compare the modularity value produced by the Louvain algorithm to those in 1), and explain the reasons for the differences.
 ```{r}
-### customize community by gender ###
+### customize community by gender
+
 genderCommunity<-V(Highschool)$gender
 genderCommunity<-replace(genderCommunity,genderCommunity=="female",1)
 genderCommunity<-replace(genderCommunity,genderCommunity=="male",2)
@@ -185,8 +237,35 @@ genderCommunity<-as.numeric(genderCommunity)
 gender.clustering <- make_clusters(Highschool, membership=genderCommunity)
 modularity(gender.clustering)
 
+```
+```{r}
+### customize community by hall
+hallCommunity<-V(Highschool)$hall
+hallCommunity<-replace(hallCommunity,hallCommunity=="1501",1)
+hallCommunity<-replace(hallCommunity,hallCommunity=="1502",2)
+hallCommunity<-replace(hallCommunity,hallCommunity=="1503",3)
+hallCommunity<-replace(hallCommunity,hallCommunity=="1504",4)
+hallCommunity<-replace(hallCommunity,hallCommunity=="1505",5)
+hallCommunity<-as.numeric(hallCommunity)
+
+hall.clustering <- make_clusters(Highschool, membership=hallCommunity)
+modularity(hall.clustering)
+
+```
+```{r}
 ### Louvain algorithm ###
-Louv<-cluster_louvain(graph.object)
+Louv<-cluster_louvain(Highschool)
 modularity(Louv)
 
+
+
+
+
+
+
+```
+```{r}
+### Louvain algorithm ###
+Louv<-cluster_louvain(Facebook)
+modularity(Louv)
 ```
