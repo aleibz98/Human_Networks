@@ -6,8 +6,6 @@ library('network')
 library('intergraph')
 #comments
 ```
-```{
-```
 
 Type any R code in the chunk, for example:
 ```{r}
@@ -395,47 +393,6 @@ Regular8<-watts.strogatz.game(dim=1,size=300,nei=6, p=0)
 plot(Regular8, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with zero rewiring probability ")
 ```
 ```{r}
-#make a plot with how the average path length changes with the rewiring probability in Regular8
-p<-seq(0,1,0.01)
-mean_distance<-c()
-for (i in p){
-  Regular8<-watts.strogatz.game(dim=1,size=300,nei=6, p=i)
-  mean_distance<-c(mean_distance,mean_distance(Regular8))
-}
-# plot(p,mean_distance,type="l",xlab="Rewiring probability",ylab="Average path length")
-#apply log scale to the mean_distance and plot it again
-plot(p,mean_distance,type="l",xlab="Rewiring probability",ylab="Average path length")
-```
-```{r}
-
-```
-```{r}
-#make a plot with how the clustering coefficient changes with the rewiring probability in Regular8
-p<-seq(0,1,0.01)
-mean_distance<-c()
-for (i in p){
-  Regular8<-watts.strogatz.game(dim=1,size=300,nei=6, p=i)
-  mean_distance<-c(mean_distance,transitivity(Regular8))
-}
-plot(p,mean_distance,type="l",xlab="Rewiring probability",ylab="Clustering coefficient")
-
-```
-
-```{r}
-#combine two previous lines of code into one
-p<-seq(0,1,0.01)
-mean_distance<-c()
-clustering<-c()
-for (i in p){
-  Regular8<-watts.strogatz.game(dim=1,size=300,nei=6, p=i)
-  mean_distance<-c(mean_distance,mean_distance(Regular8))
-  clustering<-c(clustering,transitivity(Regular8))
-}
-plot(p,log(mean_distance),type="l",xlab="Rewiring probability",ylab="Average path length")
-plot(p,log(clustering),col="red")
-legend("topright",c("Average path length","Clustering coefficient"),col=c("black","red"),lty=1)
-```
-```{r}
 #make the previos plot in y range from 0 to 1
 p<-seq(0,1,0.01)
 mean_distance<-c()
@@ -445,13 +402,15 @@ for (i in p){
   mean_distance<-c(mean_distance,mean_distance(Regular8))
   clustering<-c(clustering,transitivity(Regular8))
 }
-plot(p,log(mean_distance),type="l",xlab="Rewiring probability",ylab="Average path length",ylim=c(0,1))
-plot(p,log(clustering),col="red")
+par(mfrow = c(1, 2))
+
+plot(p,mean_distance,xlab="Rewiring probability",ylab="Average path length",ylim=c(0,1))
+plot(p,clustering,col="red", xlab="Rewiring probability",ylab="Clustering",ylim=c(0,1))
 legend("topright",c("Average path length","Clustering coefficient"),col=c("black","red"),lty=1)
 
 ```
 ```{r}
-g0 <- barabasi.game(100, power = 0.2, m = NULL, out.dist = NULL, out.seq = NULL, out.pref = FALSE, zero.appeal = 1, directed = FALSE,algorithm ="psumtree", start.graph = NULL)
+g0 <- barabasi.game(100, power =  0.1, m = NULL, out.dist = NULL, out.seq = NULL, out.pref = FALSE, zero.appeal = 1, directed = FALSE,algorithm ="psumtree", start.graph = NULL)
 plot(g0, vertex.label= NA, edge.arrow.size=0.02,vertex.size =5, main = "Scale-free network model, power=1")
 
 
@@ -464,37 +423,116 @@ For the Highschool network, identify five edges which after deletion, there will
 In other words, if such five edges did not exist, the average path length of the network would increase significant.
 Provide your answer in the format of A-B, in which A and B are the node ID. Are they weak ties or strong ties? (Question 10, 2 points)
 ```{r}
-library(igraph)
+#calculate 5 edges with the highest betweenness centrality in Highschool network
+edge_betweenness <- edge_betweenness(Highschool)
+top_5_edges <- sort(edge_betweenness, decreasing = TRUE)[1:5]
+top_5_edges_indices <- which(edge_betweenness %in% top_5_edges)
+top_5_edges <- as_edgelist(Highschool)[top_5_edges_indices,]
+top_5_edges
+```
+```{r}
+stopifnot(require(data.table))
+stopifnot(require(Matrix))
 
-# Create a graph
-G <- graph(edges = c(1, 2, 2, 3, 3, 4, 4, 1, 1, 3))
+calculate_value <- function(node, each_neighbors,Pprob){
+  return(each_neighbors[[node]][ which(runif(length(each_neighbors[[node]]), 0, 1)<=Pprob)])
+  #'runif' is a function to generate random number in R
+}
+#This function:
+#1) searches the neighbors of contagious node;
+#2) To those who are connected to a contagious node, generates a random number and compare to the
+#probability of p, if random number<p, this node will be infected and return the value of 1
 
-# Calculate the current average path length
-apl_current <- mean(shortest.paths(Highschool))
+IC<-function(node_seed,network,Pprob){
 
-# Loop until a significant increase in average path length is achieved
-while (TRUE) {
-  # Select a random edge
-  edges <- E(Highschool)
-  if (length(edges) == 0) break  # No edges left to remove
-  edge_to_remove <- sample(edges, 1)
+  #prepare input for the 'calculate_value' function#
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neigbhour list of each node
 
-  # Remove the selected edge and calculate the new average path length
-  G_new <- delete.edges(Highschool, edge_to_remove)
-  apl_new <- mean(shortest.paths(G_new))
+  nNode<-vcount(network)
+  node_status <- rep.int(0, nNode) #start from a healthy population
+  day_infected<-vector()#Total number of infected population
+  new_infected <- list()  # Record the ID of person getting infected at each time step
 
-  # Check if the increase in average path length is significant
-  increase <- (apl_new - apl_current) / apl_current
-  if (increase < 0.05) break  # Increase is not significant
+  day<-1
+  node_status[as.numeric(node_seed)] <- 1 # infected(value=1) health(value=0)
+  day_infected[day] <- sum(node_status )
+  new_infected[[day]]<-node_seed #The ID of the person infected in Day 1 (Patient Zero)
 
-  # Update the current average path length and continue the loop
-  G <- G_new
-  apl_current <- apl_new
+  #simulate the spread of virus within 4 weeks##
+  for (day in c(2:28)){
+    ContagiousID<-which(node_status == 1)
+    infectedID<-unlist(lapply(ContagiousID,calculate_value,each_neighbors,Pprob))
+    newinfectedID<- setdiff(infectedID, which(node_status == 1))
+
+    #Update the node status and other variables
+    node_status[newinfectedID] <- 1
+    day_infected[day] <- length(newinfectedID)
+    new_infected[[day]]<-newinfectedID
+
+    day=day+1
+  }
+  return(day_infected)  #return the number of newly infected people by day
+  #return(list(day_infected,new_infected)) #if you want to see the ID of infected ppl in each day, use this command instead
 }
 
-# Print the resulting graph and average path length
-cat("Resulting graph:", "\n")
-plot(G)
-cat("Average path length:", apl_current, "\n")
+```
+```{r}
+# IC(5, Highschool, 0.15)
 
+# run the IC model 100 times and take the average
+IC_average <- function(node_seed,network,Pprob){
+  n <- 100
+  result <- matrix(0, nrow = 28, ncol = n)
+  for (i in 1:n){
+    result[, i] <- IC(node_seed,network,Pprob)
+  }
+  return(apply(result, 1, mean))
+}
+
+
+```
+```{r}
+IC_average(5, Highschool, 0.15)
+
+
+```
+```{r}
+#delete the the nodes with the highest betweenness centrality
+Highschool2 <- delete_vertices(Highschool, top_5_edges)
+```
+```{r}
+#delete the edhe between 5 and 6 and 5 and 7
+Highschool3 <- delete_edges(Highschool, c(60, 44, 12, 24, 96, 94, 43, 90,46,58))
+```
+
+
+```{r}
+IC_average(5, Highschool2, 0.15)
+```
+```{r}
+IC_average(5, Highschool3, 0.15)
+```
+```{r}
+#make a plot of the average number of infected people by day for Highschool, Highschool2, and Highschool3
+#add color to the lines to distinguish the three networks
+plot(IC_average(5, Highschool, 0.15), type = "l", col = "red", ylim = c(0, 10), xlab = "Day", ylab = "Average number of infected people")
+lines(IC_average(5, Highschool2, 0.15), type = "l", col = "blue")
+lines(IC_average(5, Highschool3, 0.15), type = "l", col = "green")
+legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
+
+```
+```{r}
+plot(IC_average(5, Highschool, 0.8), type = "l", col = "red", ylim = c(0, 36), xlab = "Day", ylab = "Average number of infected people")
+lines(IC_average(5, Highschool2, 0.8), type = "l", col = "blue")
+lines(IC_average(5, Highschool3, 0.8), type = "l", col = "green")
+legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
+```
+
+```
+
+
+
+```
 ```
