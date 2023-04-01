@@ -18,7 +18,10 @@ facebook_edge <- read.csv("Human_networks/Assignment_2_kate/data/Facebook_networ
 ```
 ```{r}
 highschool_att
+59,63,91,92,99
+
 ```
+
 
 ```{r}
 #build high school network
@@ -60,6 +63,8 @@ Highschool_interactive_layout
 #degree(Highschool)
 which.max(degree(Highschool))
 V(Highschool)[which.max(degree(Highschool))]
+```
+```{r}
 
 ```
 ```{r}
@@ -67,7 +72,12 @@ V(Highschool)[which.max(degree(Highschool))]
 #
 which.max(betweenness(Highschool))
 V(Highschool)[which.max(betweenness(Highschool))]
+#top-3 nodes with the highest betweenness centrality
+betweenness(Highschool)[order(betweenness(Highschool),decreasing = TRUE)][1:3]
 
+```
+```{r}
+betweenness(Highschool)[order(betweenness(Highschool),decreasing = TRUE)][1:3]
 ```
 ```{r}
 #find the node of the highest closeness centrality
@@ -584,6 +594,9 @@ SIR <-function(node_seed,network,Pprob){
 
 ```
 ```{r}
+SIR(5, Highschool, 0.15)
+```
+```{r}
 SIR_average <- function(node_seed,network,Pprob){
   n <- 100
   result <- matrix(0, nrow = 28, ncol = n)
@@ -608,6 +621,293 @@ lines(SIR_average(5, Highschool2, 0.8), type = "l", col = "blue")
 lines(SIR_average(5, Highschool3, 0.8), type = "l", col = "green")
 legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
 ```
+```{r}
+calculate_adoptedNei <- function(node, node_status, each_neighbors){
+  return(mean(node_status[each_neighbors[[node]]] == 1)) ### to calculate the percentage of adopted neigbhours
+}
+
+ThModel<-function(node_seed,network,threshold){
+  #prepare input for the 'calculate_value' function#
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neigbhour list of each node
+
+  nNode<-vcount(network)
+  node_status <- rep.int(0, nNode)
+  neighbour_status<-rep.int(0, nNode)  ##percentage of adopted neighbours
+  new_infected <- list()
+  day_total_infected <- rep(0,28) ### Total number of active people by end of each day
+
+
+  ### Day 1 ####
+  day <- 1
+  node_status[as.numeric((node_seed))] <- 1
+  new_infected[[day]] <-node_seed
+  day_total_infected[day]=sum(node_status == 1)
+  ####
+
+  for (day in c(2:28)){
+    NotAdopted <- which(node_status == 0)
+    Adopted <- which(node_status == 1)
+
+    neighbour_status[NotAdopted] <- unlist(lapply(NotAdopted, calculate_adoptedNei, node_status, each_neighbors))
+
+    new_infected[[day]] <- setdiff(which(neighbour_status > threshold), Adopted)
+    node_status[new_infected[[day]]] <- 1  #update the staus to 1 for those newly adopted
+    day_total_infected[day] <- sum(node_status)
+
+    day <- day + 1
+  }
+  return(day_total_infected)
+  # return(list(day_total_infected,new_infected))
+}
+
+```
+```{r}
+values <- list(59,63,91,92,99)
+threshold <- c(0.4, 0.47, 0.49, 0.72, 075)
+
+
+```
+```{r}
+ThModel(values, Highschool, threshold)
+
+```
+```{r}
+highschool_att$Threshold
+```
+```{r}
+```
+```{r}
+```
+
+QUESTION FOUR
+
+
+```{r}
+betweenness(Highschool)[order(betweenness(Highschool),decreasing = TRUE)][1:3]
+```
+```{r}
+#top-3 nodes with the highest degree
+degree(Highschool)[order(degree(Highschool),decreasing = TRUE)][1:3]
+```
+```{r}
+calculate_value <- function(node, each_neighbors,Pprob){
+  return(each_neighbors[[node]][ which(runif(length(each_neighbors[[node]]), 0, 1)<=Pprob)])
+  #'runif' is a function to generate random number in R
+}
+#This function:
+#1) searches the neighbors of contagious node;
+#2) To those who are connected to a contagious node, generates a random number and compare to the
+#probability of p, if random number<p, this node will be infected and return the value of 1
+
+IC<-function(node_seed,network,Pprob, immuned_nodes){
+
+  #prepare input for the 'calculate_value' function#
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neigbhour list of each node
+
+  nNode<-vcount(network)
+  node_status <- rep.int(0, nNode) #start from a healthy population
+  day_infected<-vector()#Total number of infected population
+  new_infected <- list()  # Record the ID of person getting infected at each time step
+  immuned_nodes <- as.numeric(immuned_nodes) # convert immuned_nodes to numeric
+
+  # Nodes that are immune
+  node_status[immuned_nodes] <- 2
+
+  day<-1
+  node_status[as.numeric(node_seed)] <- 1 # infected(value=1) health(value=0)
+  day_infected[day] <- sum(node_status)
+  new_infected[[day]]<-node_seed #The ID of the person infected in Day 1 (Patient Zero)
+
+
+  #simulate the spread of virus within 4 weeks##
+  for (day in c(2:28)){
+    ContagiousID<-which(node_status == 1)
+    #print(ContagiousID) #инфцированные ноды
+    infectedID<-unlist(lapply(ContagiousID,calculate_value,each_neighbors,Pprob))
+    #print('кого заразили')
+    #print(infectedID) #кого заразили
+    newinfectedID<- setdiff(infectedID, which(node_status == 1))
+    #print('новенькие')
+    #print(newinfectedID)
+    #print(newinfectedID) #вывести новых зараженных
+
+    #Update the node status and other variables
+    node_status[newinfectedID] <- 1
+    day_infected[day] <- length(newinfectedID)
+    #print(day_infected[day])
+
+    new_infected[[day]]<-newinfectedID
+
+    # Nodes that are immune
+    node_status[immuned_nodes] <- 2
+
+    day=day+1
+  }
+  return(day_infected)  #return the number of newly infected people by day
+  #return(list(day_infected,new_infected)) #if you want to see the ID of infected ppl in each day, use this command instead
+}
+```
+```{r}
+immuned_nodes_degree <- c(54,20,110)
+```
+```{r}
+
+IC(107, Highschool, 0.15, immuned_nodes_degree)
+```
+```{r}
+immuned_nodes_betweenness <- c(4,37,96)
+```
+```{r}
+IC(107, Highschool, 0.15, immuned_nodes_betweenness)
+
+```
+```{r}
+plot(IC(107, Highschool, 0.15,immuned_nodes_betweenness), type = "l", col = "red", ylim = c(0, 20), xlab = "Day", ylab = "Average number of infected people")
+lines(IC(5, Highschool, 0.15, immuned_nodes_degree), type = "l", col = "blue")
+legend("topright", c("Highschool_betweenness", "Highschool_degree"), col = c("red", "blue"), lty = 1)
+
+```
+```{r}
+IC_average_d <- function(node_seed,network,Pprob, immuned_nodes){
+  n <- 100
+  result <- matrix(0, nrow = 28, ncol = n)
+  for (i in 1:n){
+    result[, i] <- IC(node_seed,network,Pprob,immuned_nodes)
+  }
+  return(apply(result, 1, mean))
+}
+```
+```{r}
+sum(IC_average_d(107, Highschool, 0.15, immuned_nodes_degree))
+```
+```{r}
+sum(IC_average_d(107, Highschool, 0.15, immuned_nodes_betweenness))
+```
+```{r}
+IC_greedy<-function(node_seed,network,Pprob){
+
+  #prepare input for the 'calculate_value' function#
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neigbhour list of each node
+
+  nNode<-vcount(network)
+  node_status <- rep.int(0, nNode) #start from a healthy population
+  day_infected<-vector()#Total number of infected population
+  new_infected <- list()  # Record the ID of person getting infected at each time step
+
+  day<-1
+  node_status[as.numeric(node_seed)] <- 1 # infected(value=1) health(value=0)
+  day_infected[day] <- sum(node_status)
+  new_infected[[day]]<-node_seed #The ID of the person infected in Day 1 (Patient Zero)
+
+  #simulate the spread of virus within 4 weeks##
+  for (day in c(2:28)){
+    ContagiousID<-which(node_status == 1)
+    #print(ContagiousID) #инфцированные ноды
+    infectedID<-unlist(lapply(ContagiousID,calculate_value,each_neighbors,Pprob))
+    print('кого заразили')
+    print(infectedID) #кого заразили
+    newinfectedID<- setdiff(infectedID, which(node_status == 1))
+    print('новенькие')
+    print(newinfectedID)
+    #print(newinfectedID) #вывести новых зараженных
+
+    #Update the node status and other variables
+    node_status[newinfectedID] <- 1
+    day_infected[day] <- length(newinfectedID)
+    print(day_infected[day])
+
+    new_infected[[day]]<-newinfectedID
+    day=day+1
+  }
+  return(day_infected)  #return the number of newly infected people by day
+  #return(list(day_infected,new_infected)) #if you want to see the ID of infected ppl in each day, use this command instead
+}
+
+
+```
+
+```{r}
+IC_greedy <- function(network, Pprob, num_immunized = 3) {
+  nNode <- vcount(network)
+  node_status <- rep.int(0, nNode) #start from a healthy population
+  node_status[107] <- 1 # node 107 is infected on day 1
+  day_infected <- vector() # Total number of infected population
+  new_infected <- list()  # Record the ID of person getting infected at each time step
+  immunized <- c() # List of immunized nodes
+
+  # Prepare input for the 'calculate_value' function
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neighbor list of each node
+
+  day <- 1
+  day_infected[day] <- sum(node_status)
+  new_infected[[day]] <- 107 # The ID of the person infected in Day 1 (Patient Zero)
+
+  # Simulate the spread of virus within 4 weeks
+  for (day in 2:28) {
+    # Find the most influential node to immunize
+    max_reduction <- 0
+    node_to_immunize <- NULL
+    for (i in 1:nNode) {
+      if (i %in% immunized) next # skip already immunized nodes
+      if (node_status[i] == 0) next # skip already infected nodes
+      tmp_status <- node_status # create a temporary copy of the current node status
+      tmp_status[i] <- 2 # immunize the current node
+      tmp_infected <- unlist(lapply(which(tmp_status == 1), calculate_value, each_neighbors, Pprob))
+      reduction <- sum(!tmp_infected %in% new_infected[[day-1]])
+      if (reduction > max_reduction) {
+        max_reduction <- reduction
+        node_to_immunize <- i
+      }
+    }
+    print(node_to_immunize)
+    # Immunize the node with the highest reduction
+    node_status[node_to_immunize] <- 2
+    immunized <- c(immunized, node_to_immunize)
+    if (length(immunized) == num_immunized) break # stop immunizing nodes when reaching the desired number
+
+    # Simulate the spread of the virus for the current day
+    contagious_ID <- which(node_status == 1)
+    infected_ID <- unlist(lapply(contagious_ID, calculate_value, each_neighbors, Pprob))
+    new_infected_ID <- setdiff(infected_ID, which(node_status == 1))
+
+    # Update the node status and other variables
+    node_status[new_infected_ID] <- 1
+    day_infected[day] <- length(new_infected_ID)
+    new_infected[[day]] <- new_infected_ID
+  }
+  return(day_infected)
+  # return(list(day_infected, immunized)) # return the number of newly infected people and the list of immunized nodes by day
+}
+
+```
+```{r}
+#
+IC_greedy(Highschool, 0.15, 3)
+```
+```{r}
+IC_greedy_med <- function(network, Pprob, num_immunized = 3) {
+  n <- 50
+  result <- matrix(0, nrow = 28, ncol = n)
+  for (i in 1:n){
+    result[, i] <- IC_greedy(network, Pprob, num_immunized = 3)
+  }
+  return(apply(result, 1, median))
+}
+```
+```{r}
+IC_greedy_med(Highschool, 0.15, 3)
+```
+```{r}
+```
+
 
 
 ```
