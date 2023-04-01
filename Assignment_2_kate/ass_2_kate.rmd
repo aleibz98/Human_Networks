@@ -457,26 +457,36 @@ IC<-function(node_seed,network,Pprob){
 
   day<-1
   node_status[as.numeric(node_seed)] <- 1 # infected(value=1) health(value=0)
-  day_infected[day] <- sum(node_status )
+  day_infected[day] <- sum(node_status)
   new_infected[[day]]<-node_seed #The ID of the person infected in Day 1 (Patient Zero)
 
   #simulate the spread of virus within 4 weeks##
   for (day in c(2:28)){
     ContagiousID<-which(node_status == 1)
+    #print(ContagiousID) #инфцированные ноды
     infectedID<-unlist(lapply(ContagiousID,calculate_value,each_neighbors,Pprob))
+    print('кого заразили')
+    print(infectedID) #кого заразили
     newinfectedID<- setdiff(infectedID, which(node_status == 1))
+    print('новенькие')
+    print(newinfectedID)
+    #print(newinfectedID) #вывести новых зараженных
 
     #Update the node status and other variables
     node_status[newinfectedID] <- 1
     day_infected[day] <- length(newinfectedID)
-    new_infected[[day]]<-newinfectedID
+    print(day_infected[day])
 
+    new_infected[[day]]<-newinfectedID
     day=day+1
   }
   return(day_infected)  #return the number of newly infected people by day
   #return(list(day_infected,new_infected)) #if you want to see the ID of infected ppl in each day, use this command instead
 }
 
+```
+```{r}
+IC(5, Highschool, 0.15)
 ```
 ```{r}
 # IC(5, Highschool, 0.15)
@@ -529,10 +539,76 @@ lines(IC_average(5, Highschool2, 0.8), type = "l", col = "blue")
 lines(IC_average(5, Highschool3, 0.8), type = "l", col = "green")
 legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
 ```
+```{r}
+#make a SIR model from the previous IC model
+SIR <-function(node_seed,network,Pprob){
 
+  #prepare input for the 'calculate_value' function#
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neigbhour list of each node
+
+  nNode<-vcount(network)
+  # node_status <- rep.int(0, nNode) #start from a healthy population
+  node_status <- data.frame(status=rep(0, nNode), infected_day=NA) #start from a healthy population
+  day_infected<-vector()#Total number of infected population
+  new_infected <- list()  # Record the ID of person getting infected at each time step
+
+  day<-1
+  node_status[as.numeric(node_seed), "status"] <- 1 # infected(value=1) health(value=0)
+  node_status[as.numeric(node_seed), "infected_day"] <- day
+  day_infected[day] <- sum(node_status$status)
+  new_infected[[day]]<-node_seed #The ID of the person infected in Day 1 (Patient Zero)
+
+  #simulate the spread of virus within 4 weeks##
+  for (day in c(2:28)){
+    contagious_nodes <- which(node_status$status == 1 & (day - node_status$infected_day) < 4)
+    infected_nodes<-unlist(lapply(contagious_nodes,calculate_value,each_neighbors,Pprob))
+    newinfected_nodes<- setdiff(infected_nodes, which(node_status$status > 0))
+
+    #Update the node status and other variables
+    node_status[newinfected_nodes, "status"] <- 1
+    node_status[newinfected_nodes, "infected_day"] <- day
+    day_infected[day] <- length(newinfected_nodes)
+    new_infected[[day]]<-newinfected_nodes
+
+    # Mark nodes as recovered if they have been infected for 3 days
+    recovered_nodes <- which(node_status$status == 1 & (day - node_status$infected_day) == 3)
+    node_status[recovered_nodes, "status"] <- 2
+
+    day=day+1
+  }
+  return(day_infected)  #return the number of newly infected people by day
+  #return(list(day_infected,new_infected)) #if you want to see the ID of infected ppl in each day, use this command instead
+}
+
+```
+```{r}
+SIR_average <- function(node_seed,network,Pprob){
+  n <- 100
+  result <- matrix(0, nrow = 28, ncol = n)
+  for (i in 1:n){
+    result[, i] <- SIR(node_seed,network,Pprob)
+  }
+  return(apply(result, 1, mean))
+}
+```
+```{r}
+SIR_average(5, Highschool, 0.15)
+```
+```{r}
+SIR_average(5, Highschool2, 0.15)
+```
+```{r}
+SIR_average(5, Highschool3, 0.15)
+```
+```{r}
+plot(SIR_average(5, Highschool, 0.8), type = "l", col = "red", ylim = c(0, 36), xlab = "Day", ylab = "Average number of infected people")
+lines(SIR_average(5, Highschool2, 0.8), type = "l", col = "blue")
+lines(SIR_average(5, Highschool3, 0.8), type = "l", col = "green")
+legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
 ```
 
 
+```
 
-```
-```
