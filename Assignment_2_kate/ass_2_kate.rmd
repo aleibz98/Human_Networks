@@ -18,7 +18,6 @@ facebook_edge <- read.csv("Human_networks/Assignment_2_kate/data/Facebook_networ
 ```
 ```{r}
 highschool_att
-59,63,91,92,99
 
 ```
 
@@ -64,16 +63,14 @@ Highschool_interactive_layout
 which.max(degree(Highschool))
 V(Highschool)[which.max(degree(Highschool))]
 ```
-```{r}
 
-```
 ```{r}
 #find the node of the highest betweenness centrality
 #
 which.max(betweenness(Highschool))
 V(Highschool)[which.max(betweenness(Highschool))]
-#top-3 nodes with the highest betweenness centrality
-betweenness(Highschool)[order(betweenness(Highschool),decreasing = TRUE)][1:3]
+# #top-3 nodes with the highest betweenness centrality
+# betweenness(Highschool)[order(betweenness(Highschool),decreasing = TRUE)][1:3]
 
 ```
 ```{r}
@@ -311,6 +308,14 @@ title(main="ER3")
 mean(degree(ER1))
 ```
 ```{r}
+#average length path of the ER1
+mean_distance(ER3)
+```
+```{r}
+#cluster coefficient of the ER1
+transitivity(ER3)
+```
+```{r}
 mean(degree(ER2))
 ```
 ```{r}
@@ -440,6 +445,7 @@ top_5_edges_indices <- which(edge_betweenness %in% top_5_edges)
 top_5_edges <- as_edgelist(Highschool)[top_5_edges_indices,]
 top_5_edges
 ```
+
 ```{r}
 stopifnot(require(data.table))
 stopifnot(require(Matrix))
@@ -475,17 +481,17 @@ IC<-function(node_seed,network,Pprob){
     ContagiousID<-which(node_status == 1)
     #print(ContagiousID) #инфцированные ноды
     infectedID<-unlist(lapply(ContagiousID,calculate_value,each_neighbors,Pprob))
-    print('кого заразили')
-    print(infectedID) #кого заразили
+    # print('кого заразили')
+    # print(infectedID) #кого заразили
     newinfectedID<- setdiff(infectedID, which(node_status == 1))
-    print('новенькие')
-    print(newinfectedID)
+    # print('новенькие')
+    # print(newinfectedID)
     #print(newinfectedID) #вывести новых зараженных
 
     #Update the node status and other variables
     node_status[newinfectedID] <- 1
     day_infected[day] <- length(newinfectedID)
-    print(day_infected[day])
+    # print(day_infected[day])
 
     new_infected[[day]]<-newinfectedID
     day=day+1
@@ -519,12 +525,21 @@ IC_average(5, Highschool, 0.15)
 
 ```
 ```{r}
+#plot IC_average(5, Highschool, 0.15)
+plot(IC_average(5, Highschool, 0.15), type = "l", ylim = c(0, 10), xlab = "Day", ylab = "Average number of infected people (IC)")
+
+```
+```{r}
 #delete the the nodes with the highest betweenness centrality
 Highschool2 <- delete_vertices(Highschool, top_5_edges)
 ```
 ```{r}
 #delete the edhe between 5 and 6 and 5 and 7
-Highschool3 <- delete_edges(Highschool, c(60, 44, 12, 24, 96, 94, 43, 90,46,58))
+# Highschool3 <- delete_edges(Highschool, c(60, 44, 12, 24, 96, 94, 43, 90,46,58))
+Highschool3 <- delete_edges(Highschool, c(54, 112, 20, 50, 110, 10, 64, 61,96,94))
+# strongest_edges <- sort(degree(Highschool), decreasing = TRUE)[1:5]
+# strongest_edges
+# Highschool3 <- delete.edges(Highschool, strongest_edges)
 ```
 
 
@@ -614,6 +629,24 @@ SIR_average(5, Highschool2, 0.15)
 ```
 ```{r}
 SIR_average(5, Highschool3, 0.15)
+```
+```{r}
+plot(SIR_average(5, Highschool, 0.8), type = "l", col = "red", ylim = c(0, 36), xlab = "Day", ylab = "Average number of infected people")
+lines(SIR_average(5, Highschool2, 0.8), type = "l", col = "blue")
+lines(SIR_average(5, Highschool3, 0.8), type = "l", col = "green")
+legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
+```
+```{r}
+plot(SIR_average(5, Highschool, 0.08), type = "l", col = "red", ylim = c(0, 36), xlab = "Day", ylab = "Average number of infected people")
+lines(SIR_average(5, Highschool2, 0.08), type = "l", col = "blue")
+lines(SIR_average(5, Highschool3, 0.08), type = "l", col = "green")
+legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
+```
+```{r}
+plot(SIR_average(5, Highschool, 0.5), type = "l", col = "red", ylim = c(0, 36), xlab = "Day", ylab = "Average number of infected people")
+lines(SIR_average(5, Highschool2, 0.5), type = "l", col = "blue")
+lines(SIR_average(5, Highschool3, 0.5), type = "l", col = "green")
+legend("topright", c("Highschool", "Highschool2", "Highschool3"), col = c("red", "blue", "green"), lty = 1)
 ```
 ```{r}
 plot(SIR_average(5, Highschool, 0.8), type = "l", col = "red", ylim = c(0, 36), xlab = "Day", ylab = "Average number of infected people")
