@@ -13,24 +13,25 @@ knitr::opts_chunk$set(echo = TRUE)
 library(igraph)
 library(RColorBrewer)
 library(visNetwork)
+library(ggplot2)
 ```
 
 ```{r}
-highschool_edge<-read.csv("Highschool_network_edge.csv",header=FALSE)
-highschool_att<-read.csv("Highschool_network_att.csv",header = TRUE)
-facebook_edge<-read.csv("Facebook_network_edge.csv",header=FALSE) 
-facebook_att<-read.csv("Facebook_network_att.csv",header = TRUE)
+highschool_edge <- read.csv("Highschool_network_edge.csv", header=FALSE)
+highschool_att <- read.csv("Highschool_network_att.csv", header = TRUE)
+facebook_edge <- read.csv("Facebook_network_edge.csv", header=FALSE) 
+facebook_att <- read.csv("Facebook_network_att.csv", header = TRUE)
 ```
 
 ```{r}
-highschool_nodes<-data.frame(name=as.character(highschool_att$NodeID),
-                             gender=as.character(highschool_att$Gender),
-                             hall=as.character(highschool_att$Hall))
+highschool_nodes <- data.frame(name = as.character(highschool_att$NodeID),
+                             gender = as.character(highschool_att$Gender),
+                             hall = as.character(highschool_att$Hall))
 
-highschool_edges<-data.frame(from=c(as.character(highschool_edge[,1])),
-                             to=c(as.character(highschool_edge[,2])))
+highschool_edges <- data.frame(from = c(as.character(highschool_edge[,1])),
+                             to = c(as.character(highschool_edge[,2])))
 
-Highschool<-graph_from_data_frame(highschool_edges,directed = FALSE,vertices = highschool_nodes)
+Highschool <- graph_from_data_frame(highschool_edges,directed = FALSE,vertices = highschool_nodes)
 
 co <- components(Highschool)
 
@@ -39,13 +40,15 @@ summary(Highschool)
 ```
 
 ```{r}
-#build facebook network 
-facebook_nodes<-data.frame(name=as.character(facebook_att$NodeID))
+#build facebook network
+facebook_nodes <- data.frame(name=as.character(facebook_att$NodeID))
 
-facebook_edges<-data.frame(from=c(as.character(facebook_edge[,1])),
-                           to=c(as.character(facebook_edge[,2])))
+facebook_edges <- data.frame(from = c(as.character(facebook_edge[,1])),
+                             to = c(as.character(facebook_edge[,2])))
 
-Facebook<-graph_from_data_frame(facebook_edges,directed = FALSE,vertices = facebook_nodes)
+Facebook <- graph_from_data_frame(facebook_edges,
+                                  directed = FALSE,
+                                  vertices = facebook_nodes)
 
 summary(Facebook)
 ```
@@ -76,15 +79,15 @@ which.max(betweenness(Highschool, directed = FALSE, normalized = TRUE))
 which.max(closeness(Highschool, normalized = TRUE))
 
 # Get the node with the highest eigenvector
-which.max(as.numeric(unlist(eigen_centrality(Highschool))))
+# which.max(as.numeric(unlist(eigen_centrality(Highschool))))
 ```
 
 ```{r}
 #function to visualize the network (with interaction) 
 set.seed(100)
-Highschool_interactive_layout<- visNetwork(data.frame(id=V(Highschool)$name),
-                                           highschool_edges, main = "Highschool",
-                                           submain="Can zoom in/out to check the IDs and ties") %>%
+Highschool_interactive_layout <- visNetwork(data.frame(id=V(Highschool)$name),
+                                            highschool_edges, main = "Highschool",
+                                            submain="Can zoom in/out to check the IDs and ties") %>%
   visIgraphLayout(layout = "layout_nicely",smooth = FALSE) %>% visNodes(shape="circle",label = TRUE) %>%
   visOptions(highlightNearest = list(enabled = T, hover = T), nodesIdSelection = T)
 
@@ -116,7 +119,7 @@ cor.test(degree(Highschool, mode = "all"), betweenness(Highschool, directed = FA
 cor.test(degree(Highschool, mode = "all"), closeness(Highschool, normalized = TRUE))
 
 # Correlation between degree and eigenvector
-cor.test(degree(Highschool, mode = "all"), as.numeric(unlist(eigen_centrality(Highschool)))) # Error - must be same length
+#cor.test(degree(Highschool, mode = "all"), as.numeric(unlist(eigen_centrality(Highschool)))) # Error - must be same length
 ```
 
 ```{r}
@@ -128,7 +131,7 @@ cor.test(degree(Facebook, mode = "all"), betweenness(Facebook, directed = FALSE,
 cor.test(degree(Facebook, mode = "all"), closeness(Facebook, normalized = TRUE))
 
 # Correlation between degree and eigenvector
-cor.test(degree(Facebook, mode = "all"), as.numeric(unlist(eigen_centrality(Facebook)))) # Error - must be same length
+# cor.test(degree(Facebook, mode = "all"), as.numeric(unlist(eigen_centrality(Facebook)))) # Error - must be same length
 ```
 
 # TODO: Some correlation plots
@@ -176,7 +179,7 @@ sum(fb_distances <= 6) / length(fb_distances)
 ```{r}
 # Use an histogram to study the degree distribution of these two networks
 # Highschool
-par(mfrow=c(1,2))
+par(mfrow = c(1, 2))
 hist(degree(Highschool, mode = "all"), main = "Highschool Degree Distribution", xlab = "Degree", ylab = "Frequency")
 
 # Facebook
@@ -203,7 +206,7 @@ Question 4:
 
 ```{r}
 ## visualize the network by gender
-par(mfrow=c(1,2))
+par(mfrow = c(1, 2))
 coul <- brewer.pal(length(unique( V(Highschool)$gender)), "Set2")
 my_color <- coul[as.numeric(as.factor(V(Highschool)$gender))] 
 set.seed(10)
@@ -218,9 +221,6 @@ plot(Highschool,
 legend("bottomleft", 
         legend=levels(as.factor(V(Highschool)$gender)),
         col = coul, bty = "n", pch=20 , pt.cex = 1.5, cex = 1.5, horiz = FALSE, inset = c(0.1, 0.1))
-```
-
-```{r}
 ## visualize the network by residential hall
 coul <- brewer.pal(length(unique( V(Highschool)$hall)), "Set2")
 my_color <- coul[as.numeric(as.factor(V(Highschool)$hall))] 
@@ -282,40 +282,853 @@ genderCommunity <- replace(genderCommunity, genderCommunity == "female", 1)
 genderCommunity <- replace(genderCommunity, genderCommunity == "male", 2)
 genderCommunity <- replace(genderCommunity, genderCommunity == "unknown", 3)
 genderCommunity <- as.numeric(genderCommunity)
-gender.clustering <- make_clusters(Highschool, membership=genderCommunity)
+gender.clustering <- make_clusters(Highschool, membership = genderCommunity)
 modularity(gender.clustering)
 ```
 
 ```{r}
 ### customize community by gender
 hallCommunity <- V(Highschool)$hall
-hallCommunity <- as.numeric(genderCommunity)
+hallCommunity <- as.numeric(hallCommunity)
 hall.clustering <- make_clusters(Highschool, membership = hallCommunity)
 modularity(hall.clustering)
 ```
 
-#TODO: Same result, so there must be something wrong... 
+#TODO: Explain
 
 
 ```{r}
-Louv <- cluster_louvain(Highschool) 
+Louv <- cluster_louvain(Highschool)
 modularity(Louv)
 ```
 
 # TODO: 0.70 -> Too much difference
 
+
+
+# Exercise 2
+
+Question 6 (3 points):
+
+  1) Develop three networks with the same number of vertices (n), but different probability (p) 
+      Name them as ER1, ER2, and ER3. Develop the plots of ER1, ER2 and ER3, describe how these three graphs look differently as p increase and explain why.
+
+  2) For a large n (e.g., n=1000), study the relation between clustering coefficient of the network and p,
+      and explain the reason for such a relation. 
+      (You can use the function of transitivity (graph.object) to calculate clustering coefficient).
+
+
 ```{r}
+# Make three ER grraphs
+ER1 <- sample_gnp(100, 0.25, directed = FALSE, loops = FALSE)
+ER2 <- sample_gnp(100, 0.5, directed = FALSE, loops = FALSE)
+ER3 <- sample_gnp(100, 0.75, directed = FALSE, loops = FALSE)
+
+par(mfrow = c(1, 3))
+plot(ER1, vertex.label = NA, main = "ER1")
+plot(ER2, vertex.label = NA, main = "ER2")
+plot(ER3, vertex.label = NA, main = "ER3")
+```
+
+```{r}
+# TODO: Explain the difference between the three graphs
+```
+
+```{r}
+# Build large ER graph (1000 nodes) and calculate the clustering coefficient with different p
+par(mfrow = c(1, 1))
+p <- seq(0.01, 0.99, 0.01)
+clustering <- sapply(p, function(x) {
+  y <- sample_gnp(1000, x, directed = FALSE, loops = FALSE)
+  transitivity(y)
+  })
+
+plot(p, clustering, type = "l", xlab = "p", ylab = "Clustering coefficient")
+```
+
+Question 7 (2 points):
+
+  Check the clustering coefficient and average path length of the Regular, SW1, SW2 and SW3. 
+  
+  Describe the trend of clustering coefficient and average path length as p increase. 
+  
+  Which graph does mimic the desirable attributes of a small world network?
+
+
+```{r}
+par(mfrow = c(2, 2))
+Regular <- watts.strogatz.game(dim=1, size=300, nei=6, p=0)
+plot(Regular, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with zero rewiring probability ")
+
+SW1<-watts.strogatz.game(dim=1, size=300, nei=6, p=0.001)
+plot(SW1, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with 0.001 rewiring probability ")
+
+SW2<-watts.strogatz.game(dim=1,size=300,nei=6, p=0.01)
+plot(SW2, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with 0.01 rewiring probability ")
+
+SW3<-watts.strogatz.game(dim=1, size=300, nei=6, p=0.1)
+plot(SW3, layout=layout.circle, vertex.label=NA, vertex.size=5, main= "Network with 0.1 rewiring probability ")
+```
+
+```{r}
+# Check the clustering coefficient
+transitivity(Regular)
+transitivity(SW1)
+transitivity(SW2)
+transitivity(SW3)
+
+# Check the average path length -> Not sure if this is the right way to do it
+mean_distance(Regular)
+mean_distance(SW1)
+mean_distance(SW2)
+mean_distance(SW3)
+```
+
+```{r}
+# Describe the trend of clustering coefficient and average path length as p increase.
+par(mfrow = c(1, 2))
+
+p <- seq(0.01, 0.99, 0.01)
+clustering <- sapply(p, function(x) {
+  y <- watts.strogatz.game(dim=1,size=300,nei=6, p=x)
+  transitivity(y)
+  })
+
+plot(p, clustering, type="l", xlab="p", ylab="Clustering coefficient")
+
+
+p <- seq(0.01, 0.99, 0.01)
+clustering <- sapply(p, function(x) {
+  y <- watts.strogatz.game(dim=1,size=300,nei=6, p=x)
+  mean_distance(y)
+  })
+
+plot(p, clustering, type="l", xlab="p", ylab="Average path length")
+```
+
+```{r}
+# TODO: Which graph does mimic the desirable attributes of a small world network?
+
+```
+
+
+Question 8 (5 points):
+
+  1) Start with a regular network of size=300, nei=6, first reproduce the Figure 2 of Watts and Strogatz (1998). 
+      Then provide the range of p which can turn this regular network (size=300, nei=6) into a small-world network.
+  
+  2) Do you need to rewire significant amount of connections to make the network small- world-like?
+
+    3) In the paper of Watts and Strogatz (1998), they pointed out that the value of p has two important implications:
+        
+        “The idealized construction above reveals the key role of short cuts. It suggests that the small-world 
+        phenomenon might be common in sparse networks with many vertices, as even a tiny fraction of short cuts would suffice.”
+        
+        “Thus, infectious diseases are predicted to spread much more easily and quickly in a small world; the alarming and 
+        less obvious point is how few short cuts are needed to make the world small.”
+
+        Use your own words to explain these two implications. For the second implication, connect it with the spread of COVID.
+
+```{r}
+# Plot path length and clustering coefficient as a function of p
+par(mfrow = c(1, 1))
+
+p <- seq(0.01, 0.99, 0.01)
+
+z <- watts.strogatz.game(dim=1,size=100,nei=6, p=0)
+
+ggplot(data.frame(p), aes(x = p)) +
+  geom_line(aes(y = sapply(p, function(x) {
+    y <- watts.strogatz.game(dim=1,size=100,nei=6, p=x)
+    transitivity(y)/transitivity(z)
+  })), color = "red") +
+  geom_line(aes(y = sapply(p, function(x) {
+    y <- watts.strogatz.game(dim=1,size=100,nei=6, p=x)
+    mean_distance(y)/mean_distance(z)
+  })), color = "blue") +
+  labs(x = "p", y = "Clustering coefficient and Average path length") +
+  scale_x_continuous(breaks = seq(0, 1, 0.1)) +
+  scale_y_continuous(breaks = seq(0, 1, 0.1)) +
+  theme_bw()
+  # TODO: Graph is not looking as it should
+```
+
+```{r}
+# Provide the range of p which can turn this regular network (size=300, nei=6) into a small-world network.
+
+# TODO
+```
+
+```{r}
+# Do you need to rewire significant amount of connections to make the network small- world-like?
+# TODO
+```
+
+"""
+CHATGPT RESPONSE TO THE 3rd QUESTION:
+The first implication of Watts and Strogatz's paper is that even a small number of "short cuts" can significantly impact the connectivity of a network. A "short cut" is a direct link between two nodes that are not directly connected in a network. The authors suggest that the presence of just a few of these short cuts in a sparse network with many nodes can result in a "small-world" phenomenon, in which most nodes in the network can be reached from any other node through a small number of intermediate steps. This implies that small-world networks may be more common than previously thought, and that a small number of well-placed links can have a significant impact on the overall connectivity of a network.
+
+The second implication of the paper is that infectious diseases may spread more easily and quickly in small-world networks. This is because a small number of short cuts can facilitate the rapid transmission of an infectious disease through the network. For example, if a person with a contagious disease is connected to a few individuals who are not directly connected to each other, those individuals can quickly become infected and then transmit the disease to their own connections, rapidly spreading the disease throughout the network.
+
+In the case of COVID, this implication is particularly relevant. COVID is highly contagious and can spread rapidly through social networks. Even a small number of individuals who are well-connected to others can act as "super-spreaders" and transmit the disease to a large number of people. This is why public health officials have emphasized the importance of social distancing and avoiding large gatherings, as these can facilitate the rapid spread of the disease through a small-world network. By limiting the number of short cuts in a network and reducing the overall connectivity, it is possible to slow the spread of infectious diseases like COVID.
+"""
+
+
+
+Question 9 (3 points):
+
+  1) What does the power in the above function mean? 
+     How can it govern the structure of the network? 
+     (Hint: Change the value of power from 0.05, 0.5, 1, 1.5; See how the plot evolves; 
+     if you still fail to see the difference, visualize the vertex size according to the edge number, 
+     you can consider the code below.)
+
+  2) For two networks with a power of 0.5 and 1.5, respectively, what will be their resilience for 
+      1) random attack, and 
+      2) targeted attack? 
+      (the meanings of ‘random attack’ and ‘targeted attack’ are the same as what is mentioned in Lecture 6, scale- free network)
+
+
+```{r}
+g0 <- barabasi.game(100, power = 1, m = NULL, out.dist = NULL, out.seq = NULL, out.pref = FALSE, zero.appeal = 1, directed = FALSE,algorithm ="psumtree", start.graph = NULL)
+plot(g0, vertex.label= NA, edge.arrow.size=0.02,vertex.size =5, main = "Scale-free network model, power=1")
+```
+
+```{r}
+par(mfrow = c(2, 2))
+powers <- c(0.05, 0.5, 1, 1.5)
+for (power in powers) {
+  g <- barabasi.game(100, power = power, m = NULL, out.dist = NULL, out.seq = NULL, out.pref = FALSE, zero.appeal = 1, directed = FALSE,algorithm ="psumtree", start.graph = NULL)
+  plot(g, vertex.label= NA, edge.arrow.size=0.02,vertex.size =5, main = paste("Scale-free network model, power=", power))
+}
+```
+
+```{r}
+# Visualize the vertex size according to the edge number
+par(mfrow = c(2, 2))
+powers <- c(0.05, 0.5, 1, 1.5)
+for (power in powers) {
+  g <- barabasi.game(100, power = power, m = NULL, out.dist = NULL, out.seq = NULL, out.pref = FALSE, zero.appeal = 1, directed = FALSE,algorithm ="psumtree", start.graph = NULL)
+  plot(g, vertex.label= NA, edge.arrow.size=0.02,vertex.size = degree(g), main = paste("Scale-free network model, power=", power))
+}
+```
+
+```{r}
+# I don't really like this graphs...
+# I think I'm missing something...
+
+par(mfrow = c(2, 1))
+powers <- c(0.5, 1.5)
+for (power in powers) {
+  g <- barabasi.game(100, power = power, m = NULL, out.dist = NULL, out.seq = NULL, out.pref = FALSE, zero.appeal = 1, directed = FALSE,algorithm ="psumtree", start.graph = NULL)
+  
+  # Compute the random attack resilience
+  random_resilience <- numeric(length(V(g)))
+  for(i in 1:length(V(g))){
+    g2 <- delete.vertices(g, sample(V(g), i))
+    if(is.connected(g2)){
+      random_resilience[i] <- 1
+    } else {
+      random_resilience[i] <- 0
+    }
+  }
+
+  # Compute the targeted attack resilience
+  targeted_resilience <- numeric(length(V(g)))
+  for(i in 1:length(V(g))){
+    g2 <- delete.vertices(g, degree(g)==max(degree(g))[1])
+    if(is.connected(g2)){
+      targeted_resilience[i] <- 1
+    } else {
+      targeted_resilience[i] <- 0
+    }
+  }
+
+  # Plot the results
+  plot(1:length(V(g)), random_resilience, type = "l", xlab = "Number of removed nodes", ylab = "Resilience")
+  lines(1:length(V(g)), targeted_resilience, col = "red")
+  legend("topleft", legend = c("Random attack", "Targeted attack"), col = c("black", "red"), lty = 1)
+}
+```
+
+
+```{r}
+# For the Highschool network, identify five edges which after deletion, there will be significant gain of the average path lengths of the network. In other words, if such five edges did not exist, the average path length of the network would increase significant.
+plot(Highschool, vertex.label= NA, edge.arrow.size=0.02,vertex.size = degree(Highschool), main = "Highschool network")
+```
+# TODO: Determine the edges that will increase the average path length significantly
+
+
+
+# Build an Indepenent Cascade Model with:
+# Each node has 2 states
+# At day 0 (t=0), the state of each node is 0 (susceptible)
+# At day 1 (t=1), an infected node will be introduced to the network
+# At days 2+ (t=2+), each node will be infected with probability p if it is connected to an infected node
+# Once a node is infected, it will remain infected forever
+# Model for 14 days (t=0 to t=14)
+```{r}
+IC <- function(g, p, t){
+  # Initialize a new infections list
+  new_infections <- vector(mode = "numeric", length = t)
+
+  # Initialize the state of each node to 0 (susceptible)
+  state <- rep(0, length(V(g)))
+  
+  # Infect a random node at day 1 (t=1)
+  state[5] <- 1
+  
+  # Infect the nodes at days 2+ (t=2+)
+  for(i in 2:t){
+    # Initialize the number of new infections to 0 for the current day
+    new_infected <- 0
+    
+    for(j in V(g)){
+      if(state[j] == 0){
+        # Check if the node is connected to an infected node
+        infected_neighbors <- which(state[neighbors(g, j)] == 1)
+        if(length(infected_neighbors) > 0){
+          # Infect the node with probability p
+          if(runif(1) < p){
+            state[j] <- 1
+            new_infected <- new_infected + 1
+          }
+        }
+      }
+    }
+    # Print the number of newly infected nodes at each day
+    #cat("Day ", i, ": ", new_infected, " new infections\n", sep = "")
+    
+    # Save the number of new infections for the current day
+    new_infections[i] <- new_infected
+  }
+  # Return the state of each node and the new infections list
+  return(list(state, new_infections))
+}
 
 ```
 
 ```{r}
+IC_HS <- IC(Highschool, 0.15, 28)
+```
 
+# (Question 12, 6 points)
+# Now you are going to test the “strength of weak ties” in the simple contagion:
+# 1) Delete the 5 edges that you have identified in Q10 from the Highschool 
+#    network and form a new network (Highschool 2);
+# 2) Delete 5 strong ties from the Highschool network and form a new network (Highschool 3);
+# 3) Apply the IC models you developed in Q12 on the original Highschool network, 
+#    Highschool2 and Highschool3. Record the number of newly infected people by day.
+# 4) Generate a plot (with x-axis as Day, y-axis as the number of newly infected
+#    people by day) to compare the results from Step 3.
+# 5) Recall the “strength of weak ties” from the lecture, do the results in Step 3&4 
+#    support such a claim and why?
+
+
+```{r}
+# Delete the 5 edges that you have identified in Q11 from the Highschool network and form a new network (Highschool 2);
+# Edges S4-S37, S17-S70, S24-S72, S4-S77, S37-S90
+#Highschool2 <- delete.edges(Highschool, edges)
+```
+
+```{r}
+# Delete 5 strong ties from the Highschool network and form a new network (Highschool 3);
+# Get the 5 strongest ties
+strongest_edges <- sort(degree(Highschool), decreasing = TRUE)[1:5]
+Highschool3 <- delete.edges(Highschool, strongest_edges)
+```
+
+```{r}
+# Apply the IC models you developed in Q12 on the original Highschool network, Highschool2 and Highschool3. 
+# Record the number of newly infected people by day.
+IC_HS <- IC(Highschool, 0.15, 28)
+#IC_HS2 <- IC(Highschool2, 0.15, 28)
+IC_HS3 <- IC(Highschool3, 0.15, 28)
+```
+```{r}
+IC_average <- function(network,Pprob){
+ n <- 100
+ result <- matrix(0, nrow = 28, ncol = n)
+ for (i in 1:n){
+   result[, i] <- IC(network,Pprob, 28)[[2]]
+ }
+ return(apply(result, 1, mean))
+}
+IC_HS_avg <- IC_average(Highschool, 0.15)
+IC_HS3_avg <- IC_average(Highschool3, 0.15)
+
+```
+
+
+
+```{r}
+# Generate a plot (with x-axis as Day, y-axis as the number of newly infected people by day) 
+# to compare the results from Step 3.
+par(mfrow = c(1, 2))
+plot(1:28, IC_HS_avg, type = "l", xlab = "Day", ylab = "Number of newly infected people")
+#plot(1:27, IC_HS2[[2]], type = "l", xlab = "Day", ylab = "Number of newly infected people")
+plot(1:28, IC_HS3_avg, type = "l", xlab = "Day", ylab = "Number of newly infected people")
+```
+
+```{r}
+# Recall the “strength of weak ties” from the lecture, do the results in Step 3&4 support such a claim and why?
+#TODO: Answer the question
+```
+
+Question 13 (8 points): In the above exercises, the “strength of weak ties” are tested in a simplified IC model with a specific 
+probability p. Do you think your observation in Q13 holds regardless of the contagiousness of the virus? To find out,
+
+  1) Play around the probability p in the IC model. Change the value of p to high and low ends, run the IC model again on Highschool, 
+     Highschool 2 and Highschool 3, and see if you will observe different things (2 points).
+
+  2) The above IC model is a simplified version of the SIR model. In the SIR model, node have three status:
+  - Each node in the network has three statuses:
+  - At Day 0, all the nodes in the network are   ;
+  - At Day 1, an infectious node (N0, node ID= S5) is introduced to the network;
+  - At the following days, all the nodes connecting to the infectious node will have a chance of 0.15 (p=0.15) being infected.
+        S, I, or R, (Susceptible, Infectious, or Recovered). Modify the IC model to a SIR model with the following characteristics:
+        Susceptible, Infectious, or Recovered.
+
+        Susceptible
+        - Every infected node will remain infectious for 3 days, i.e., only the infected nodes activated from the past 3 days can transmit the virus to their neighbours. 
+          After that, their status becomes Recovered, which cannot be either Infectious or Susceptible again.
+        - Model the contagion process for 4 weeks.
+
+        After you build the SIR model, repeat the exercise of Q12 3)-5) on the SIR model, and check if the “strength of weak ties” still holds. (6 points)
+
+```{r}
+# 1) Play around the probability p in the IC model. Change the value of p to high and low ends, run the IC model again on Highschool,
+#    Highschool 2 and Highschool 3, and see if you will observe different things (2 points).
+par(mfrow = c(5, 2))
+for (p in c(0.01, 0.1, 0.5, 0.9, 0.99)){
+  IC_HS_avg <- IC_average(Highschool, p)
+  #IC_HS2 <- IC(Highschool2, p, 28)
+  IC_HS3_avg <- IC_average(Highschool3, p)
+  plot(1:28, IC_HS_avg, type = "l", xlab = "Day", ylab = "Number of newly infected people")
+  #plot(1:27, IC_HS2[[2]], type = "l", xlab = "Day", ylab = "Number of newly infected people")
+  plot(1:28, IC_HS3_avg, type = "l", xlab = "Day", ylab = "Number of newly infected people")
+}
+```
+
+```{r}
+#### THIS APPROACH IS NOT WORKING SO WE WILL CONTINUE WITH THE COPY PASTE APPROACH FROM THE PRACTICAL ####
+
+# 2) The above IC model is a simplified version of the SIR model. In the SIR model, node have three status:
+#    - Each node in the network has three statuses:
+#    - At Day 0, all the nodes in the network are   ;
+#    - At Day 1, an infectious node (N0, node ID= S5) is introduced to the network;
+#    - At the following days, all the nodes connecting to the infectious node will have a chance of 0.15 (p=0.15) being infected.
+#      S, I, or R, (Susceptible, Infectious, or Recovered). Modify the IC model to a SIR model with the following characteristics:
+#      Susceptible
+#      - Every infected node will remain infectious for 3 days, i.e., only the infected nodes activated from the past 3 days can transmit the virus to their neighbours.
+#        After that, their status becomes Recovered, which cannot be either Infectious or Susceptible again.
+#      - Model the contagion process for 4 weeks.
+
+SIR2 <- function(g, p, t){
+  # Initialize a new infections and new recoveries list
+  new_infections <- list()
+  new_recoveries <- list()
+
+  # Initialize the state of each node to 0 (susceptible)
+  state <- rep(0, length(V(g)))
+  
+  # Infect a random node at day 1 (t=1)
+  state[sample(V(g), 1)] <- 1
+  
+  # Initialize a list to store the infectious status of each node for the past 3 days
+  past_infections <- vector("list", 3)
+  past_infections[[1]] <- state
+  
+  for(i in 2:t){
+    # Update past infections list with current day's state
+    past_infections <- c(past_infections[-1], list(state))
+    
+    # Calculate the recovered nodes by checking for nodes that were infected 3 days ago
+    recovered <- which(past_infections[[1]] == 1)
+    
+    # Set recovered nodes to status 2 (recovered)
+    state[recovered] <- 2
+    
+    # Check each susceptible node for infection
+    for(j in which(state == 0)){
+      # Check if the node is connected to an infectious node
+      infectious_neighbors <- which(past_infections[[3]][neighbors(g, j)] == 1)
+      
+      # Infect the node with probability p if it has an infectious neighbor
+      if(length(infectious_neighbors) > 0 && runif(1) < p){
+        state[j] <- 1
+      }
+    }
+    
+    # Print the number of newly infected and newly recovered nodes at each day
+    cat("Day ", i, ": ", sum(state == 1), " new infections, ", length(recovered), " new recoveries\n", sep = "")
+    
+    # Save the new infections and new recoveries to their respective lists
+    new_infections <- c(new_infections, sum(state == 1))
+    new_recoveries <- c(new_recoveries, length(recovered))
+  }
+  
+  # Return the state of each node, new infections, and new recoveries
+  return(list(state, new_infections, new_recoveries))
+}
+
+SIR3 <- function(g, p, t, infectious_period){
+  # Initialize a new infections and recoveries list
+  new_infections <- list()
+  new_recoveries <- list()
+
+  # Initialize the state of each node to 0 (susceptible)
+  state <- rep(0, length(V(g)))
+
+  # Infect a specific node at day 1 (t=1)
+  state[which(V(g) == "S5")] <- 1
+  infection_day <- rep(NA, length(V(g)))
+  infection_day[which(V(g) == "S5")] <- 1
+
+  # Infect the nodes at days 2+ (t=2+)
+  for(i in 2:t){
+    for(j in V(g)){
+      if(state[j] == 0){
+        # Check if the node is connected to an infected node within the infectious period
+        infected_neighbors <- which(state[neighbors(g, j)] == 1 & (i - infection_day[neighbors(g, j)] <= infectious_period))
+        if(length(infected_neighbors) > 0){
+          # Infect the node with probability p
+          if(runif(1) < p){
+            state[j] <- 1
+            infection_day[j] <- i
+          }
+        }
+      } else if(state[j] == 1 && i - infection_day[j] == infectious_period){
+      # Change the node status to Recovered after the infectious period
+        state[j] <- 2
+      }
+    }
+    # Calculate the number of new infections and recoveries at each day
+    new_infections_day <- sum(state == 1 & infection_day == i)
+    new_recoveries_day <- sum(state == 2 & (infection_day + infectious_period) == i)
+
+    # Print the number of new infections and recoveries at each day
+    cat("Day ", i, ": ", new_infections_day, " new infections, ", new_recoveries_day, " new recoveries\n", sep = "")
+
+    # Save the new infections and recoveries to their respective lists
+    new_infections <- c(new_infections, new_infections_day)
+    new_recoveries <- c(new_recoveries, new_recoveries_day)
+  }
+  return(list(state, new_infections, new_recoveries))
+}
+
+SIR4 <- function(g, p, t, infectious_period){
+  # Initialize a new infections and recoveries list
+  new_infections <- list()
+  new_recoveries <- list()
+
+  # Initialize the state of each node to 0 (susceptible)
+  state <- rep(0, length(V(g)))
+
+  # Infect the node with ID 5 at day 1 (t=1)
+  state[5] <- 1
+  infection_day <- rep(NA, length(V(g)))
+  infection_day[5] <- 1
+
+  # Infect the nodes at days 2+ (t=2+)
+  for(i in 2:t){
+    updated_state <- state
+    for(j in V(g)){
+      if(state[j] == 0){
+        # Check if the node is connected to an infected node within the infectious period
+        infected_neighbors <- which(state[neighbors(g, j)] == 1 & (i - infection_day[neighbors(g, j)] <= infectious_period))
+        if(length(infected_neighbors) > 0){
+        # Infect the node with probability p
+          if(runif(1) < p){
+            updated_state[j] <- 1
+            infection_day[j] <- i
+          }
+        }
+      } else if(state[j] == 1 && i - infection_day[j] == infectious_period){
+        # Change the node status to Recovered after the infectious period
+        updated_state[j] <- 2      }
+    }
+
+    state <- updated_state
+    
+    # Calculate the number of new infections and recoveries at each day
+    new_infections_day <- sum(state == 1 & infection_day == i)
+    new_recoveries_day <- sum(state == 2 & (infection_day + infectious_period) == i)
+
+    # Print the number of new infections and recoveries at each day
+    cat("Day ", i, ": ", new_infections_day, " new infections, ", new_recoveries_day, " new recoveries\n", sep = "")
+
+    # Save the new infections and recoveries to their respective lists
+    new_infections <- c(new_infections, new_infections_day)
+    new_recoveries <- c(new_recoveries, new_recoveries_day)
+  }
+  return(list(state, new_infections, new_recoveries))
+}
+
+SIR4_HS <- SIR4(Highschool, 0.15, 28, 3)
 ```
 
 ```{r}
 
+
+# 1) Apply the Threshold model on the original Highschool network,
 ```
 
 ```{r}
+#  After you build the SIR model, repeat the exercise of Q12 3)-5) on the SIR model, and check if the “strength of weak ties” still holds. (6 points)
+# 3) Apply the SIR models on the original Highschool network, 
+#    Highschool2 and Highschool3. Record the number of newly infected people by day.
+# 4) Generate a plot (with x-axis as Day, y-axis as the number of newly infected
+#    people by day) to compare the results from Step 3.
+# 5) Recall the “strength of weak ties” from the lecture, do the results in Step 3&4 
+#    support such a claim and why?
 
+par(mfrow = c(5, 1))
+for (p in c(0.01, 0.1, 0.5, 0.9, 0.99)){
+  SIR4_HS <- SIR4(Highschool, p, 28, 3)
+  #SIR4_HS2 <- SIR4(Highschool2, p, 28, 3)
+  SIR4_HS3 <- SIR4(Highschool3, p, 28, 3)
+  # Plot the number of newly infected people by day for the first 28 days
+  plot(1:27,SIR4_HS[[2]], type = "l", xlab = "Day", ylab = "Number of newly infected people", main = paste("p =", p))
+  #lines(1:27,SIR4_HS2[[2]], col = "red")
+  lines(1:27,SIR4_HS3[[2]], col = "blue")
+  legend("topright", legend = c("Highschool", "Highschool2", "Highschool3"), col = c("black", "red", "blue"), lty = 1)
+}
 ```
+
+(Question 14, 5 points)
+An arbitrary assumption about the thresholds of each node in the Highschool network has been made, which can be found in the “Highschool_network_att.csv”. 
+Build a threshold model according to the above model description and the predefined thresholds of each node, answer the following questions:
+1) By seeding 5 nodes (ID=59,63,91,92,99), how many people in the network can be activated?
+2) Use the “width of a bridge” from the lecture to explain why the contagion fails to reach the following two communities: 
+  a) the one consisted of Node 55, 107, 93, 109, 80, 28; 
+  b) the one consisted of Node 110, 39, 10, 1, 50, 106.
+(Note: please submit the codes of this question along with your answer)
+
+```{r}
+# Thresh
+stopifnot(require(data.table)) 
+stopifnot(require(Matrix))
+calculate_adoptedNei <- function(node, node_status, each_neighbors){
+  return(mean(node_status[each_neighbors[[node]]] == 1)) ### to calculate the percentage of adopted neigbhours
+}
+
+ThModel<-function(node_seed,network,threshold){
+  #prepare input for the 'calculate_value' function#
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neigbhour list of each node
+  
+  nNode<-vcount(network)
+  node_status <- rep.int(0, nNode)
+  neighbour_status<-rep.int(0, nNode) ##percentage of adopted neighbours
+  new_infected <- list()
+  day_total_infected <- rep(0,28) ### Total number of active people by end of each day
+
+  ### Day 1 ####
+  day <- 1 
+  node_status[as.numeric((node_seed))] <- 1 
+  new_infected[[day]] <-node_seed 
+  day_total_infected[day]=sum(node_status == 1) 
+
+  for (day in c(2:28)){
+    NotAdopted <- which(node_status == 0) 
+    Adopted <- which(node_status == 1)
+    neighbour_status[NotAdopted] <- unlist(lapply(NotAdopted, calculate_adoptedNei, node_status, each_neighbors))
+    new_infected[[day]] <- setdiff(which(neighbour_status > threshold), Adopted)
+    node_status[new_infected[[day]]] <- 1 #update the staus to 1 for those newly adopted
+    day_total_infected[day] <- sum(node_status)
+    day <- day + 1
+  }
+  #return(day_total_infected)
+  return(list(day_total_infected,new_infected)) 
+}
+```
+
+
+```{r}
+# Load the distribution from the CSV file
+dist <- read.csv("distribution.csv")
+
+# Calculate the cumulative distribution function (CDF)
+cdf <- cumsum(dist$NumberOfStudents) / sum(dist$NumberOfStudents)
+
+# Generate a sample of values between 0 and 1
+n_obs <- 122  # Set the number of observations
+u <- runif(n_obs)
+
+# Map the values to the corresponding thresholds using the CDF
+thresholds <- numeric(n_obs)
+for (i in 1:n_obs) {
+  idx <- which(u[i] <= cdf)[1]
+  thresholds[i] <- dist$Threshold[idx]
+}
+
+# Count the number of observations for each threshold
+counts <- table(thresholds)
+
+# Print the counts for each threshold
+print(counts)
+
+thresholds_rand <- sample(thresholds)
+
+highschool_att <- read.csv("Highschool_network_att.csv", header = TRUE)
+
+highschool_att$Threshold <- thresholds_rand
+
+highschool_nodes <- data.frame(name = as.character(highschool_att$NodeID),
+                             gender = as.character(highschool_att$Gender),
+                             hall = as.character(highschool_att$Hall),
+                             threshold = as.numeric(highschool_att$Threshold))
+
+highschool_edges <- data.frame(from = c(as.character(highschool_edge[,1])),
+                             to = c(as.character(highschool_edge[,2])))
+
+Highschool <- graph_from_data_frame(highschool_edges,directed = FALSE,vertices = highschool_nodes)
+
+co <- components(Highschool)
+
+Highschool <- induced.subgraph(Highschool, which(co$membership == which.max(co$csize))) #use only the largest component for analysis
+summary(Highschool)
+```
+```{r}
+# 1) By seeding 5 nodes (ID=59,63,91,92,99), how many people in the network can be activated?
+th1 <- ThModel(c(59,63,91,92,99),Highschool,0.15)
+th1[[2]]
+```
+
+```{r}
+# 2) Use the “width of a bridge” from the lecture to explain why the contagion fails to reach the following two communities:
+#  a) the one consisted of Node 55, 107, 93, 109, 80, 28;
+#  b) the one consisted of Node 110, 39, 10, 1, 50, 106.
+
+# a) the one consisted of Node 55, 107, 93, 109, 80, 28;
+ThModel(c(55, 107, 93, 109, 80, 28),Highschool,0.15)
+
+# b) the one consisted of Node 110, 39, 10, 1, 50, 106.
+ThModel(c(110, 39, 10, 1, 50, 106),Highschool,0.15)
+```
+
+
+
+
+
+## Exercise 4
+
+(Question 17, 5 points)
+
+Apply degree heuristics and betweenness heuristics to the IC model you have developed in Question 11 
+(! Please change the initially infected node to S107!):
+
+1) You can immunize 3 nodes in the network, which after immunization, will never spread the virus 
+to other connected nodes. According to degree heuristics and betweenness heuristics, which 3 nodes 
+should be immunized in order to contain the virus?
+
+2) Immunize the 3 nodes suggested by degree heuristics and betweenness heuristics, respectively, 
+which heuristic provides the better outcome regarding 
+    a) the final activated number of people and 
+    b) flattening the daily infection curve (please provide figure in your answer)?
+
+3) Do you think the observation in 2) (i.e., degree heuristic preforms better than betweenness 
+heuristics, or the opposite) is sensitive to 
+    a) the network structure and 
+    b) parameter in the IC model? And Why?
+
+
+```{r}
+# 1) You can immunize 3 nodes in the network, which after immunization, will never spread the virus
+# to other connected nodes. According to degree heuristics and betweenness heuristics, which 3 nodes
+# should be immunized in order to contain the virus?
+
+IC2 <- function(g, p, t){
+  # Initialize a new infections list
+  new_infections <- list()
+
+  # Initialize the state of each node to 0 (susceptible)
+  state <- rep(0, length(V(g)))
+  
+  # Infect node 107 at day 1 (t=1)
+  state[107] <- 1
+  # Infect the nodes at days 2+ (t=2+)
+  for(i in 2:t){
+    for(j in V(g)){
+      if(state[j] == 0){
+        # Check if the node is connected to an infected node
+        infected_neighbors <- which(state[neighbors(g, j)] == 1)
+        if(length(infected_neighbors) > 0){
+          # Infect the node with probability p
+          if(runif(1) < p){
+            state[j] <- 1
+          }
+        }
+      }
+    }
+    # Print the number of newly infected nodes at each day
+    cat("Day ", i, ": ", sum(state == 1), " new infections\n", sep = "")
+
+    # Save the new infections to a list
+    new_infections <- c(new_infections, sum(state == 1))
+  }
+  # Return the state of each node and the new infections list
+  return(list(state, new_infections))
+}
+
+# Determine which are the best nodes to immunize
+
+# Degree Heuristics
+degree_heuristics <- function(g, p, t, k){
+  # Run the IC model
+  result <- IC2(g, p, t)
+  # Get the state of each node
+  state <- result[[1]]
+  # Get the new infections list
+  new_infections <- result[[2]]
+  # Get the degree of each node
+  degree <- degree(g)
+  # Get the nodes with the highest degree
+  highest_degree <- order(degree, decreasing = TRUE)[1:k]
+  # Immunize the nodes with the highest degree
+  state[highest_degree] <- 2
+  # Run the IC model again
+  result <- IC2(g, p, t)
+  # Get the state of each node
+  state <- result[[1]]
+  # Get the new infections list
+  new_infections <- result[[2]]
+  # Return the state of each node and the new infections list
+  return(list(state, new_infections))
+}
+
+# Betweenness Heuristics
+betweenness_heuristics <- function(g, p, t, k){
+  # Run the IC model
+  result <- IC2(g, p, t)
+  # Get the state of each node
+  state <- result[[1]]
+  # Get the new infections list
+  new_infections <- result[[2]]
+  # Get the betweenness of each node
+  betweenness <- betweenness(g)
+  # Get the nodes with the highest betweenness
+  highest_betweenness <- order(betweenness, decreasing = TRUE)[1:k]
+  # Immunize the nodes with the highest betweenness
+  state[highest_betweenness] <- 2
+  # Run the IC model again
+  result <- IC2(g, p, t)
+  # Get the state of each node
+  state <- result[[1]]
+  # Get the new infections list
+  new_infections <- result[[2]]
+  # Return the state of each node and the new infections list
+  return(list(state, new_infections))
+}
+
+# Run the degree heuristics
+degree_heuristics(Highschool, 0.15, 10, 3)
+# Run the betweenness heuristics
+```
+
+```{r}
+```
+
+```{r}
