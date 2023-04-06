@@ -4,7 +4,6 @@
 library('igraph')
 library('network')
 library('intergraph')
-#comments
 ```
 
 Type any R code in the chunk, for example:
@@ -190,7 +189,9 @@ plot(Highschool, vertex.color = my_color,
 legend("bottomleft", legend=levels(as.factor(V(Highschool)$gender)) ,col = coul , bty = "n", pch=20 , pt.cex = 2, cex = 1.5, horiz = FALSE, inset = c(0.1, 0.1))
 ```
 ```{r}
+#make a new network with only female n
 ```
+
 ```{r}
 #visualize the Highschool network by residentil area
 coul  <- brewer.pal(length(unique(V(Highschool)$hall)), "Set2")
@@ -202,6 +203,12 @@ plot(Highschool, vertex.color = my_color,
      main="Highschool network by Hall")
 #add the legend of the color of the nodes at the top left corner
 legend("bottomleft", legend=levels(as.factor(V(Highschool)$gender)) ,col = coul , bty = "n", pch=20 , pt.cex = 1.5, cex = 1.5, horiz = FALSE, inset = c(0.1, 0.1))
+```
+```{r}
+#remain only female n
+
+
+
 ```
 ```{r}
 #introduce subgraph by gender = F, calculate their edge densities
