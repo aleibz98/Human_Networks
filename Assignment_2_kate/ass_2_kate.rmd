@@ -40,6 +40,12 @@ facebook_edges<-data.frame(from=c(as.character(facebook_edge[,1])),
 Facebook<-graph_from_data_frame(facebook_edges,directed = FALSE,vertices = facebook_nodes)
 summary(Facebook)
 ```
+```{r}
+#make a subgraph of the Highschool network where the attribute
+
+```
+```{r}
+```
 
 
 ```{r}
@@ -216,6 +222,9 @@ plot(Highschool, vertex.color = my_color,
 #add the legend of the color of the nodes at the top left corner
 legend("bottomleft", legend=levels(as.factor(V(Highschool)$gender)) ,col = coul , bty = "n", pch=20 , pt.cex = 1.5, cex = 1.5, horiz = FALSE, inset = c(0.1, 0.1))
 ```
+
+
+
 
 ```{r}
 #introduce subgraph by gender = F, calculate their edge densities
@@ -761,26 +770,26 @@ print(counts)
 thresholds_rand <- sample(thresholds)
 thresholds_norm <- scale(thresholds_rand, center = FALSE, scale = diff(range(thresholds_rand, na.rm = TRUE)))
 # thresholds_norm
-# hist(as.numeric(thresholds_rand), breaks=100)
+hist(as.numeric(thresholds_norm))
 
 ```
 ```{r}
-highschool_att_beef <- read.csv("Highschool_network_att.csv", header = TRUE)
-highschool_att_beef$Threshold <- thresholds_rand
-highschool_nodes_beef <- data.frame(name = as.character(highschool_att_beef$NodeID),
-                             gender = as.character(highschool_att_beef$Gender),
-                             hall = as.character(highschool_att_beef$Hall),
-                             threshold = as.numeric(highschool_att_beef$Threshold))
-highschool_edges_beef <- data.frame(from = c(as.character(highschool_edge[,1])),
+# highschool_att <- read.csv("Highschool_network_att.csv", header = TRUE)
+highschool_att$Threshold <- thresholds_rand
+highschool_nodes <- data.frame(name = as.character(highschool_att$NodeID),
+                             gender = as.character(highschool_att$Gender),
+                             hall = as.character(highschool_att$Hall),
+                             threshold = as.numeric(highschool_att$Threshold))
+highschool_edges <- data.frame(from = c(as.character(highschool_edge[,1])),
                              to = c(as.character(highschool_edge[,2])))
-Highschool_beef <- graph_from_data_frame(highschool_edges_beef,directed = FALSE,vertices = highschool_nodes_beef)
-coo <- components(Highschool_beef)
-Highschool_beef <- induced.subgraph(Highschool_beef, which(co$membership == which.max(coo$csize))) #use only the largest component for analysis
+Highschool_beef <- graph_from_data_frame(highschool_edges,directed = FALSE,vertices = highschool_nodes)
+co <- components(Highschool_beef)
+Highschool_beef <- induced.subgraph(Highschool_beef, which(co$membership == which.max(co$csize))) #use only the largest component for analysis
 summary(Highschool_beef)
 ```
 
 ```{r}
-th1 <- ThModel(c(59,63,91,92,99),Highschool_beef, thresholds_rand)
+th1 <- ThModel(c(59,63,91,92,99),Highschool_beef, thresholds_norm)
 th1
 ```
 
@@ -805,7 +814,7 @@ calculate_value <- function(node, each_neighbors,Pprob){
 #2) To those who are connected to a contagious node, generates a random number and compare to the
 #probability of p, if random number<p, this node will be infected and return the value of 1
 
-IC<-function(node_seed,network,Pprob, immuned_nodes){
+IC_immundes<-function(node_seed,network,Pprob, immuned_nodes){
 
   #prepare input for the 'calculate_value' function#
   adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
@@ -856,50 +865,41 @@ IC<-function(node_seed,network,Pprob, immuned_nodes){
 }
 ```
 ```{r}
-immuned_nodes_degree <- c(54,20,110)
-```
-```{r}
-
-sum(IC(107, Highschool, 0.15, immuned_nodes_degree))
-```
-```{r}
-immuned_nodes_betweenness <- c(4,37,96)
-```
-```{r}
-sum(IC(107, Highschool, 0.15, immuned_nodes_betweenness))
-
-```
-```{r}
-plot(IC(107, Highschool, 0.15,immuned_nodes_betweenness), type = "l", col = "red", ylim = c(0, 20), xlab = "Day", ylab = "Average number of infected people")
-lines(IC(107, Highschool, 0.15, immuned_nodes_degree), type = "l", col = "blue")
-legend("topright", c("Highschool_betweenness", "Highschool_degree"), col = c("red", "blue"), lty = 1)
-
-```
-```{r}
-IC_average_d <- function(node_seed,network,Pprob, immuned_nodes){
+IC_average_immuned <- function(node_seed,network,Pprob, immuned_nodes){
   n <- 100
   result <- matrix(0, nrow = 28, ncol = n)
   for (i in 1:n){
-    result[, i] <- IC(node_seed,network,Pprob,immuned_nodes)
+    result[, i] <- IC_immundes(node_seed,network,Pprob,immuned_nodes)
   }
   return(apply(result, 1, mean))
 }
 ```
 ```{r}
-sum(IC_average_d(107, Highschool, 0.15, immuned_nodes_degree))
+immuned_nodes_degree <- c(54,20,110)
 ```
 ```{r}
-sum(IC_average_d(107, Highschool, 0.15, immuned_nodes_betweenness))
+
+sum(IC_average_immuned(107, Highschool, 0.15, immuned_nodes_degree))
 ```
 ```{r}
-plot(IC_average_d(107, Highschool, 0.15,immuned_nodes_betweenness), type = "l", col = "red", ylim = c(0, 20), xlab = "Day", ylab = "Average number of infected people")
-lines(IC_average_d(107, Highschool, 0.15, immuned_nodes_degree), type = "l", col = "blue")
+immuned_nodes_betweenness <- c(4,37,96)
+```
+```{r}
+sum(IC_average_immuned(107, Highschool, 0.15, immuned_nodes_betweenness))
+
+```
+```{r}
+plot(IC_average_immuned(107, Highschool, 0.15,immuned_nodes_betweenness), type = "l", lwd = 4, col = "red", ylim = c(0, 15), xlab = "Day", ylab = "Average number of infected people")
+lines(IC_average_immuned(107, Highschool, 0.15, immuned_nodes_degree), type = "l", col = "blue", lwd = 4)
 legend("topright", c("Highschool_betweenness", "Highschool_degree"), col = c("red", "blue"), lty = 1)
+
 ```
 
-```{r}
-sum(IC_average(19, Highschool, 0.15))
-```
+
+
+
+
+
 ```{r}
 IC_greedy <- function(network, Pprob, seed_node) {
   # prepare input for the 'calculate_value' function
@@ -936,38 +936,35 @@ IC_greedy <- function(network, Pprob, seed_node) {
 
 ```
 ```{r}
-greedy_nodes <- c(70, 48, 28)
-sum(IC_average_d(107, Highschool, 0.15, greedy_nodes))
-```
-```{r}
-IC_average_d(107, Highschool, 0.15, immuned_nodes_betweenness)
-```
-```{r}
-IC_greedy(Highschool, 0.1, 107)
+IC_greedy(Highschool, 0.15, 107)
 ```
 ```{r}
 greedy_nodes <- c(70, 48, 28)
+sum(IC_average_immuned(107, Highschool, 0.15, greedy_nodes))
 ```
 ```{r}
-plot(IC_average_d(107, Highschool, 0.15,immuned_nodes_betweenness), type = "l", col = "red", ylim = c(0, 20), xlab = "Day", ylab = "Average number of infected people")
-lines(IC_average_d(107, Highschool, 0.15, immuned_nodes_degree), type = "l", col = "blue")
-lines(IC_average_d(107, Highschool, 0.15, greedy_nodes), type = "l", col = "green")
+greedy_nodes <- c(48, 24, 17)
+sum(IC_average_immuned(107, Highschool, 0.15, greedy_nodes))
+```
+```{r}
+greedy_nodes <- c(100, 96, 24)
+sum(IC_average_immuned(107, Highschool, 0.15, greedy_nodes))
+```
+```{r}
+greedy_nodes <- c(92, 24, 17)
+sum(IC_average_immuned(107, Highschool, 0.15, greedy_nodes))
+```
+
+
+
+
+```{r}
+plot(IC_average_immuned(107, Highschool, 0.15,immuned_nodes_betweenness), type = "l", col = "red", ylim = c(0, 15), xlab = "Day", ylab = "Average number of infected people", lwd = 4)
+lines(IC_average_immuned(107, Highschool, 0.15, immuned_nodes_degree), type = "l", col = "blue", lwd = 4)
+lines(IC_average_immuned(107, Highschool, 0.15, greedy_nodes), type = "l", col = "green", lwd = 4)
 legend("topright", c("Highschool_betweenness", "Highschool_degree", "Highschool_greedy"), col = c("red", "blue", "green"), lty = 1)
 ```
-```{r}
-IC_average <- function(node_seed,network,Pprob){
-  n <- 100
-  result <- matrix(0, nrow = 28, ncol = n)
-  for (i in 1:n){
-    result[, i] <- IC(node_seed,network,Pprob)
-  }
-  return(apply(result, 1, mean))
-}
-```
-```{r}
-dist <- read.csv("/Users/ekaterinamazur/PycharmProjects/HN/Human_Networks/Assignment_2_kate/data/distribution.csv")
 
-```
 ```{r}
 IC_greedy_beef <- function(network, Pprob) {
   # prepare input for the 'calculate_value' function
@@ -1009,29 +1006,31 @@ highest_gred <- IC_greedy_beef(Highschool_beef, 0.15)
 highest_gred
 ```
 ```{r}
-highest_degree <- order(degree(Highschool), decreasing = TRUE)[1:7]
-highest_betweenness <- order(betweenness(Highschool), decreasing = TRUE)[1:7]
+highest_degree <- order(degree(Highschool_beef), decreasing = TRUE)[1:7]
+highest_betweenness <- order(betweenness(Highschool_beef), decreasing = TRUE)[1:7]
+```
+```{r}
+oab <- ThModel(c(), Highschool, thresholds_norm)
+oab
+```
 
-```
-```{r}
-ThModel()
-```
 
 ```{r}
-ThModel(highest_gred, Highschool_beef, 0.15)
+ThModel(highest_gred, Highschool_beef,thresholds_norm)
 ```
 ```{r}
-ThModel(highest_degree, Highschool_beef, 0.15)
+ThModel(highest_degree, Highschool_beef,thresholds_norm)
 ```
 ```{r}
-ThModel(highest_betweenness, Highschool_beef, 0.15)
+ThModel(highest_betweenness, Highschool_beef, thresholds_norm)
 
 ```
 ```{r}
 #plot TH model for the highest degree nodes, highest betweenness nodes, and highest greedy nodes
-plot(ThModel(highest_degree, Highschool_beef, 0.15), type = "l", col = "red", ylim = c(0, 20), xlab = "Day", ylab = "Average number of infected people")
-lines(ThModel(highest_betweenness, Highschool_beef, 0.15), type = "l", col = "blue")
-lines(ThModel(highest_gred, Highschool_beef, 0.15), type = "l", col = "green")
+plot(ThModel(highest_degree, Highschool_beef, thresholds_norm), type = "l", col = "red", lwd = 4, ylim = c(0, 20), xlab = "Day", ylab = "Average number of infected people")
+lines(ThModel(highest_betweenness, Highschool_beef, thresholds_norm), type = "l", col = "blue", lwd = 4)
+lines(ThModel(highest_gred, Highschool_beef, thresholds_norm), type = "l",lwd = 4, col = c("red", "blue", "green"), lty = 1)
 ```
+
 
 
