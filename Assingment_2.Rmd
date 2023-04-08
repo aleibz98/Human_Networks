@@ -14,6 +14,7 @@ library(igraph)
 library(RColorBrewer)
 library(visNetwork)
 library(ggplot2)
+library(pracma)
 ```
 
 ```{r}
@@ -125,6 +126,7 @@ cor.test(degree(Highschool, mode = "all"), closeness(Highschool, normalized = TR
 ```{r}
 # For Facebook network
 # Correlation between degree and betweenness
+
 cor.test(degree(Facebook, mode = "all"), betweenness(Facebook, directed = FALSE, normalized = TRUE))
 
 # Correlation between degree and closeness
@@ -132,6 +134,8 @@ cor.test(degree(Facebook, mode = "all"), closeness(Facebook, normalized = TRUE))
 
 # Correlation between degree and eigenvector
 # cor.test(degree(Facebook, mode = "all"), as.numeric(unlist(eigen_centrality(Facebook)))) # Error - must be same length
+
+plot(degree(Facebook, mode = "all"), closeness(Facebook, normalized = TRUE))
 ```
 
 # TODO: Some correlation plots
@@ -205,8 +209,10 @@ Question 4:
 
 
 ```{r}
+gender <- as.factor(highschool_att$Gender)
+summary(gender)
 ## visualize the network by gender
-par(mfrow = c(1, 2))
+par(mfrow = c(1, 1))
 coul <- brewer.pal(length(unique( V(Highschool)$gender)), "Set2")
 my_color <- coul[as.numeric(as.factor(V(Highschool)$gender))] 
 set.seed(10)
@@ -237,7 +243,14 @@ legend("bottomleft",
         legend=levels(as.factor(V(Highschool)$hall)),
         col = coul, bty = "n", pch=20 , pt.cex = 1.5, cex = 1.5, horiz = FALSE, inset = c(0.1, 0.1))
 ```
-
+```{r}
+par(mfrow = c(1, 1))
+for (value in unique(Highschool$Gender)) {
+  plot_data <- subset(Highschool, Gender == value)
+  print(plot(plot_data$Feature1, plot_data$Feature2, main = paste("Gender:", value)))
+  dev.flush()
+}
+```
 
 ```{r}
 #introduce subgraph by gender, calculate their edge densities 
@@ -431,26 +444,44 @@ Question 8 (5 points):
 
 ```{r}
 # Plot path length and clustering coefficient as a function of p
-par(mfrow = c(1, 1))
+if (!requireNamespace("pracma", quietly = TRUE)) {
+  install.packages("pracma")
+}
+library(pracma)
 
-p <- seq(0.01, 0.99, 0.01)
+p <- logspace(log10(0.0001), log10(1), 100)
 
 z <- watts.strogatz.game(dim=1,size=100,nei=6, p=0)
+z_transitivity <- transitivity(z)
+z_mean_distance <- mean_distance(z, directed = FALSE)
+
+par(mfrow = c(1, 1))
+
+bootstrap_iterations <- 100
+average_bootstrap <- function(p, iterations) {
+  transitivity_values <- numeric(iterations)
+  mean_distance_values <- numeric(iterations)
+  
+  for (i in 1:iterations) {
+    y <- watts.strogatz.game(dim=1, size=100, nei=6, p=p)
+    transitivity_values[i] <- transitivity(y) / z_transitivity
+    mean_distance_values[i] <- mean_distance(y, directed = FALSE) / z_mean_distance
+  }
+  
+  return(list(mean(transitivity_values), mean(mean_distance_values)))
+}
 
 ggplot(data.frame(p), aes(x = p)) +
   geom_line(aes(y = sapply(p, function(x) {
-    y <- watts.strogatz.game(dim=1,size=100,nei=6, p=x)
-    transitivity(y)/transitivity(z)
+    average_bootstrap(x, bootstrap_iterations)[[1]]
   })), color = "red") +
   geom_line(aes(y = sapply(p, function(x) {
-    y <- watts.strogatz.game(dim=1,size=100,nei=6, p=x)
-    mean_distance(y)/mean_distance(z)
+    average_bootstrap(x, bootstrap_iterations)[[2]]
   })), color = "blue") +
-  labs(x = "p", y = "Clustering coefficient and Average path length") +
-  scale_x_continuous(breaks = seq(0, 1, 0.1)) +
+  labs(x = "p", y = "Ratio of Clustering Coefficient and Average Path Length") +
+  scale_x_log10(breaks = c(0.0001, 0.001, 0.01, 0.1, 1), labels = c("0.0001", "0.001", "0.01", "0.1", "1")) +
   scale_y_continuous(breaks = seq(0, 1, 0.1)) +
   theme_bw()
-  # TODO: Graph is not looking as it should
 ```
 
 ```{r}
@@ -699,7 +730,7 @@ probability p. Do you think your observation in Q13 holds regardless of the cont
 ```{r}
 # 1) Play around the probability p in the IC model. Change the value of p to high and low ends, run the IC model again on Highschool,
 #    Highschool 2 and Highschool 3, and see if you will observe different things (2 points).
-par(mfrow = c(5, 2))
+par(mfrow = c(1,1))
 for (p in c(0.01, 0.1, 0.5, 0.9, 0.99)){
   IC_HS_avg <- IC_average(Highschool, p)
   #IC_HS2 <- IC(Highschool2, p, 28)
@@ -883,7 +914,7 @@ SIR4_HS <- SIR4(Highschool, 0.15, 28, 3)
 # 5) Recall the “strength of weak ties” from the lecture, do the results in Step 3&4 
 #    support such a claim and why?
 
-par(mfrow = c(5, 1))
+par(mfrow = c(1, 1))
 for (p in c(0.01, 0.1, 0.5, 0.9, 0.99)){
   SIR4_HS <- SIR4(Highschool, p, 28, 3)
   #SIR4_HS2 <- SIR4(Highschool2, p, 28, 3)
@@ -904,6 +935,62 @@ Build a threshold model according to the above model description and the predefi
   a) the one consisted of Node 55, 107, 93, 109, 80, 28; 
   b) the one consisted of Node 110, 39, 10, 1, 50, 106.
 (Note: please submit the codes of this question along with your answer)
+
+
+```{r}
+# Load the distribution from the CSV file
+dist <- read.csv("distribution.csv")
+
+
+# Calculate the cumulative distribution function (CDF)
+cdf <- cumsum(dist$NumberOfStudents) / sum(dist$NumberOfStudents)
+
+# Generate a sample of values between 0 and 1
+n_obs <- 122  # Set the number of observations
+u <- runif(n_obs)
+
+# Map the values to the corresponding thresholds using the CDF
+thresholds <- numeric(n_obs)
+for (i in 1:n_obs) {
+  idx <- which(u[i] <= cdf)[1]
+  # Convert the categorical thresholds to numeric values
+  if (dist$Threshold[idx] == ">=10") {
+    thresholds[i] <- 10
+  } else {
+    thresholds[i] <- as.numeric(dist$Threshold[idx])
+  }
+}
+
+# Count the number of observations for each threshold
+counts <- table(thresholds)
+
+# Print the counts for each threshold
+
+thresholds_rand <- sample(thresholds)
+thresholds_norm <- scale(thresholds_rand, center = FALSE, scale = diff(range(thresholds_rand, na.rm = TRUE)))
+
+
+highschool_att <- read.csv("Highschool_network_att.csv", header = TRUE)
+
+old_thresholds <- highschool_att$Threshold
+
+highschool_att$Threshold <- thresholds_rand
+
+highschool_nodes <- data.frame(name = as.character(highschool_att$NodeID),
+                             gender = as.character(highschool_att$Gender),
+                             hall = as.character(highschool_att$Hall),
+                             threshold = as.numeric(highschool_att$Threshold))
+
+highschool_edges <- data.frame(from = c(as.character(highschool_edge[,1])),
+                             to = c(as.character(highschool_edge[,2])))
+
+Highschool <- graph_from_data_frame(highschool_edges,directed = FALSE,vertices = highschool_nodes)
+
+co <- components(Highschool)
+
+Highschool <- induced.subgraph(Highschool, which(co$membership == which.max(co$csize))) #use only the largest component for analysis
+
+```
 
 ```{r}
 # Thresh
@@ -947,53 +1034,8 @@ ThModel<-function(node_seed,network,threshold){
 
 
 ```{r}
-# Load the distribution from the CSV file
-dist <- read.csv("distribution.csv")
-
-# Calculate the cumulative distribution function (CDF)
-cdf <- cumsum(dist$NumberOfStudents) / sum(dist$NumberOfStudents)
-
-# Generate a sample of values between 0 and 1
-n_obs <- 122  # Set the number of observations
-u <- runif(n_obs)
-
-# Map the values to the corresponding thresholds using the CDF
-thresholds <- numeric(n_obs)
-for (i in 1:n_obs) {
-  idx <- which(u[i] <= cdf)[1]
-  thresholds[i] <- dist$Threshold[idx]
-}
-
-# Count the number of observations for each threshold
-counts <- table(thresholds)
-
-# Print the counts for each threshold
-print(counts)
-
-thresholds_rand <- sample(thresholds)
-
-highschool_att <- read.csv("Highschool_network_att.csv", header = TRUE)
-
-highschool_att$Threshold <- thresholds_rand
-
-highschool_nodes <- data.frame(name = as.character(highschool_att$NodeID),
-                             gender = as.character(highschool_att$Gender),
-                             hall = as.character(highschool_att$Hall),
-                             threshold = as.numeric(highschool_att$Threshold))
-
-highschool_edges <- data.frame(from = c(as.character(highschool_edge[,1])),
-                             to = c(as.character(highschool_edge[,2])))
-
-Highschool <- graph_from_data_frame(highschool_edges,directed = FALSE,vertices = highschool_nodes)
-
-co <- components(Highschool)
-
-Highschool <- induced.subgraph(Highschool, which(co$membership == which.max(co$csize))) #use only the largest component for analysis
-summary(Highschool)
-```
-```{r}
 # 1) By seeding 5 nodes (ID=59,63,91,92,99), how many people in the network can be activated?
-th1 <- ThModel(c(59,63,91,92,99),Highschool,0.15)
+th1 <- ThModel(c(59,63,91,92,99),Highschool,old_thresholds)
 th1[[2]]
 ```
 
@@ -1003,10 +1045,67 @@ th1[[2]]
 #  b) the one consisted of Node 110, 39, 10, 1, 50, 106.
 
 # a) the one consisted of Node 55, 107, 93, 109, 80, 28;
-ThModel(c(55, 107, 93, 109, 80, 28),Highschool,0.15)
+ThModel(c(59,63,91,92,99),Highschool, old_thresholds)
+
+plot(Highschool, vertex.color = c("yellow", "blue", "green")[c(59,63,91,92,99,55, 107, 93, 109, 80, 28, 110, 39, 10, 1, 50, 106) %in% V(Highschool)])
 
 # b) the one consisted of Node 110, 39, 10, 1, 50, 106.
-ThModel(c(110, 39, 10, 1, 50, 106),Highschool,0.15)
+ThModel(c(110, 39, 10, 1, 50, 106),Highschool, thresholds)
+
+
+# Define the two communities
+community1 <- c(59, 63, 91, 92, 99)
+community2 <- c(55, 107, 93, 109, 80, 28)
+community3 <- c(110, 39, 10, 1, 50, 106)
+
+# Assign random threshold values to the nodes
+V(Highschool)$threshold <- old_thresholds
+
+# Plot the network with node colors based on the community membership
+node_colors <- rep("gray", vcount(Highschool))
+node_colors[community1] <- "blue"
+node_colors[community2] <- "yellow"
+node_colors[community3] <- "green"
+plot(Highschool, vertex.color = node_colors)
+
+# Run the threshold model on the entire network
+results <- ThModel(community1, Highschool, thresholds)
+
+# Plot the results over time
+par(mfrow = c(1, 2))
+plot(results[[1]], type = "l", xlab = "Day", ylab = "Number of adopters", main = "Total adopters over time")
+legend("topleft", c("Community 1", "Community 2"), fill = c("blue", "yellow"))
+plot(sapply(1:length(results[[2]]), function(i) length(unlist(results[[2]][i]))), type = "l", xlab = "Day", ylab = "Number of new adopters", main = "New adopters over time")
+legend("topleft", c("Community 1", "Community 2"), fill = c("blue", "yellow"))
+
+```
+
+
+```{r}
+V(Highschool)$color <- colorRampPalette(c("white", "red"))(100)[as.integer(old_thresholds * 100)]
+
+
+community1 <- c(59, 63, 91, 92, 99)
+community2 <- c(55, 107, 93, 109, 80, 28)
+community3 <- c(110, 39, 10, 1, 50, 106)
+
+
+# Color the nodes in each community
+V(Highschool)$color[community1] <- colorRampPalette(c("white", "blue"))(100)[as.integer(V(Highschool)$threshold[community1] * 100)]  # Set the color of nodes in community 1 to blue
+V(Highschool)$color[community2] <- colorRampPalette(c("white", "green"))(100)[as.integer(V(Highschool)$threshold[community2] * 100)]
+V(Highschool)$color[community3] <- colorRampPalette(c("white", "orange"))(100)[as.integer(V(Highschool)$threshold[community3] * 100)] 
+
+plot(Highschool, vertex.label = NA,
+     vertex.color = V(Highschool)$color, vertex.size = 10,
+     main = "My Graph with Communities",
+     legend.main = "Communities",
+     legend.names = c("Community 1", "Community 2", "Community 3"),
+     legend.bg = "white", legend.cex = 0.8,
+     margin = -0.1)
+
+V(Highschool)$threshold[community1]
+V(Highschool)$threshold[community2]
+V(Highschool)$threshold[community3]
 ```
 
 
@@ -1035,100 +1134,238 @@ heuristics, or the opposite) is sensitive to
     b) parameter in the IC model? And Why?
 
 
+
 ```{r}
-# 1) You can immunize 3 nodes in the network, which after immunization, will never spread the virus
-# to other connected nodes. According to degree heuristics and betweenness heuristics, which 3 nodes
-# should be immunized in order to contain the virus?
+IC_greedy <- function(network, Pprob, seed_node) {
+ # prepare input for the 'calculate_value' function
+ adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+ each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+ each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) # get the neigbhour list of each node
 
-IC2 <- function(g, p, t){
-  # Initialize a new infections list
-  new_infections <- list()
+ # initialize variables
+ n_nodes <- vcount(network)
+ node_status <- rep.int(0, n_nodes) # start from a healthy population
+ node_status[seed_node] <- 1 # set initial infected node
+ max_infected <- 0 # initialize maximum number of infected nodes
+ immune_nodes <- c() # initialize list of immune nodes
 
-  # Initialize the state of each node to 0 (susceptible)
-  state <- rep(0, length(V(g)))
+ # perform greedy search for 3 immune nodes
+ for (i in c(1:122)){
+   if (i == seed_node) next # skip the initial infected node
+   infected_count <- sum(IC_average(i, network, Pprob)) # simulate infection and count number of infected nodes
+   if (infected_count > max_infected) {
+     max_infected <- infected_count # update maximum number of infected nodes
+     immune_nodes <- c(i, immune_nodes) # add the current node to the list of immune nodes
+     #if immune nodes>3, keep only top 3 immune nodes
+     if (length(immune_nodes) > 3) immune_nodes <- immune_nodes[1:3]
+
+     }
+        #if (length(immune_nodes) > 7) immune_nodes <- immune_nodes[1:3]
+   }
+
+ return(immune_nodes)
+}
+
+```
+
+```{r}
+old_thresholds_deg <- old_thresholds
+old_thresholds_deg[highest_degree[1:3]] <- 1
+ThModel(community1, Highschool, old_thresholds_deg)
+
+old_thresholds_bet <- old_thresholds
+old_thresholds_bet[highest_betweenness[1:3]] <- 1
+ThModel(highest_betweenness[1:3], Highschool, old_thresholds_bet)
+```
+
+```{r}
+highest_gre <- IC_greedy(Highschool, thresholds_norm, 76)
+highest_gre
+
+ThModel(c(45), Highschool, thresholds_norm)[[1]][28]
+```
+
+```{r}
+highest_gre
+```
+
+
+
+```{r}
+oab <- ThModel(community1, Highschool, thresholds_norm)
+oab
+```
+
+```{r}
+# Get the 7 nodes with the highest degree
+highest_degree <- order(degree(Highschool), decreasing = TRUE)[1:7]
+
+# Get the 7 nodes with the highest betweenness
+highest_betweenness <- order(betweenness(Highschool), decreasing = TRUE)[1:7]
+```
+
+```{r}
+oab_deg <- ThModel(highest_degree[1:7], Highschool, thresholds_norm)
+
+oab_bet <- ThModel(highest_betweenness[1:7], Highschool, thresholds_norm)
+
+oab_greedy <- ThModel(c(92, 24, 17, 91, 100, 28, 70), Highschool, thresholds_norm)
+```
+
+```{r}
+oab_deg
+oab_bet
+oab_greedy
+
+par(mfrow = c(1, 1))
+plot(ThModel(highest_degree, Highschool, thresholds_norm)[[1]], type = "l", col = "red", lwd = 4, ylim = c(0, 20), xlab = "Day", ylab = "Average number of infected people")
+lines(ThModel(highest_betweenness, Highschool, thresholds_norm)[[1]], type = "l", col = "blue", lwd = 4)
+lines(ThModel(c(92, 24, 17), Highschool, thresholds_norm)[[1]], type = "l",lwd = 4, col = c("red", "blue", "green"), lty = 1)
+```
+
+```{r}
+results_deg <- ThModel(highest_degree, Highschool, thresholds_norm)
+results_bet <- ThModel(highest_betweenness, Highschool, thresholds_norm)
+results_gre <- ThModel(highest_gre, Highschool, thresholds_norm)
+
+par(mfrow = c(1, 3))
+plot(results[[1]], type = "l", xlab = "Day", ylab = "Number of adopters", main = "Total adopters over time")
+legend("topleft", c("Community 1", "Community 2"), fill = c("blue", "red"))
+plot(sapply(1:length(results[[2]]), function(i) length(unlist(results[[2]][i]))), type = "l", xlab = "Day", ylab = "Number of new adopters", main = "New adopters over time")
+legend("topleft", c("Community 1", "Community 2"), fill = c("blue", "red"))
+```
+
+
+```{r}
+page_rank_scores <- page_rank(Highschool, damping = 0.85)
+
+top_nodes <- order(page_rank_scores$vector, decreasing = TRUE)[1:7]
+top_nodes
+
+th_pagerank <- ThModel(top_nodes, Highschool, thresholds_norm)
+th_pagerank
+```
+
+
+
+```{r}
+dist_matrix <- distances(Highschool)
+
+# Set the coverage threshold
+coverage_threshold <- 1
+
+# MCLP function to find the maximal coverage
+maximal_coverage <- function(graph, dist_matrix, num_seeds, coverage_threshold) {
+  selected_nodes <- integer(0)
+  remaining_nodes <- V(graph)
   
-  # Infect node 107 at day 1 (t=1)
-  state[107] <- 1
-  # Infect the nodes at days 2+ (t=2+)
-  for(i in 2:t){
-    for(j in V(g)){
-      if(state[j] == 0){
-        # Check if the node is connected to an infected node
-        infected_neighbors <- which(state[neighbors(g, j)] == 1)
-        if(length(infected_neighbors) > 0){
-          # Infect the node with probability p
-          if(runif(1) < p){
-            state[j] <- 1
-          }
-        }
+  for (i in 1:num_seeds) {
+    max_coverage <- 0
+    best_node <- 0
+    
+    for (node in remaining_nodes) {
+      covered_nodes <- sum(dist_matrix[node, remaining_nodes] <= coverage_threshold)
+      if (covered_nodes > max_coverage) {
+        max_coverage <- covered_nodes
+        best_node <- node
       }
     }
-    # Print the number of newly infected nodes at each day
-    cat("Day ", i, ": ", sum(state == 1), " new infections\n", sep = "")
-
-    # Save the new infections to a list
-    new_infections <- c(new_infections, sum(state == 1))
+    
+    selected_nodes <- c(selected_nodes, best_node)
+    remaining_nodes <- setdiff(remaining_nodes, best_node)
   }
-  # Return the state of each node and the new infections list
-  return(list(state, new_infections))
+  
+  return(selected_nodes)
 }
 
-# Determine which are the best nodes to immunize
-
-# Degree Heuristics
-degree_heuristics <- function(g, p, t, k){
-  # Run the IC model
-  result <- IC2(g, p, t)
-  # Get the state of each node
-  state <- result[[1]]
-  # Get the new infections list
-  new_infections <- result[[2]]
-  # Get the degree of each node
-  degree <- degree(g)
-  # Get the nodes with the highest degree
-  highest_degree <- order(degree, decreasing = TRUE)[1:k]
-  # Immunize the nodes with the highest degree
-  state[highest_degree] <- 2
-  # Run the IC model again
-  result <- IC2(g, p, t)
-  # Get the state of each node
-  state <- result[[1]]
-  # Get the new infections list
-  new_infections <- result[[2]]
-  # Return the state of each node and the new infections list
-  return(list(state, new_infections))
-}
-
-# Betweenness Heuristics
-betweenness_heuristics <- function(g, p, t, k){
-  # Run the IC model
-  result <- IC2(g, p, t)
-  # Get the state of each node
-  state <- result[[1]]
-  # Get the new infections list
-  new_infections <- result[[2]]
-  # Get the betweenness of each node
-  betweenness <- betweenness(g)
-  # Get the nodes with the highest betweenness
-  highest_betweenness <- order(betweenness, decreasing = TRUE)[1:k]
-  # Immunize the nodes with the highest betweenness
-  state[highest_betweenness] <- 2
-  # Run the IC model again
-  result <- IC2(g, p, t)
-  # Get the state of each node
-  state <- result[[1]]
-  # Get the new infections list
-  new_infections <- result[[2]]
-  # Return the state of each node and the new infections list
-  return(list(state, new_infections))
-}
-
-# Run the degree heuristics
-degree_heuristics(Highschool, 0.15, 10, 3)
-# Run the betweenness heuristics
+# Find the 7 seed nodes with maximal coverage
+seed_nodes <- maximal_coverage(Highschool, dist_matrix, 7, coverage_threshold)
+seed_nodes
+th_maxcov <- ThModel(seed_nodes, Highschool, thresholds_norm)
+th_maxcov
 ```
 
-```{r}
-```
+
+
 
 ```{r}
+twitch_edge <- read.csv("large_twitch_edges.csv", header=TRUE)
+twitch_edges <- data.frame(from=c(as.character(twitch_edge[,1])),
+                           to=c(as.character(twitch_edge[,2])))
+
+twitch_node <- read.csv("large_twitch_features.csv", header=TRUE)
+twitch_nodes <- data.frame(name = as.character(twitch_node$numeric_id),
+                           views = as.character(twitch_node$views))
+
+twitch <- graph_from_data_frame(twitch_edges, directed = FALSE, vertices = twitch_nodes)
+
+co <- components(twitch)
+
+twitch <- induced.subgraph(twitch, which(co$membership==which.max(co$csize)))
+
+sub_twitch <- induced.subgraph(twitch, sample(V(twitch), 1000), impl = 'auto')
+
+twitch_PR <- page_rank(sub_twitch, damping = 0.85)$vector
+
+top_nodes_tw <- order(twitch_PR, decreasing = TRUE)[1:5]
+top_nodes_tw
+
+twitch_thresh <- scale(log10(as.numeric(V(sub_twitch)$views)), center=FALSE, scale = diff(range(log10(as.numeric(V(sub_twitch)$views)), na.rm=FALSE)))
+
+summary(twitch_thresh)
+
+
+node_seed_valid <- all(top_nodes_tw %in% V(sub_twitch))
+if (!node_seed_valid) {
+  stop("Invalid node IDs in node_seed")
+}
+
+stopifnot(require(data.table)) 
+stopifnot(require(Matrix))
+calculate_adoptedNei_2 <- function(node, node_status, each_neighbors){
+  each_neighbors[[node]] <- intersect(each_neighbors[[node]], V(sub_twitch))
+  return(mean(node_status[each_neighbors[[node]]] == 1)) ### to calculate the percentage of adopted neigbhours
+}
+
+ThModel_2<-function(node_seed,network,threshold){
+  #prepare input for the 'calculate_value' function#
+  adj_matrix <- igraph::as_adjacency_matrix(network, type = 'both')
+  each_neighbors <- which(adj_matrix > 0, arr.ind = TRUE)
+  each_neighbors <- split(each_neighbors[, 2], each_neighbors[, 1]) #get the neigbhour list of each node
+  
+  node_ids <- V(network)
+  each_neighbors <- lapply(each_neighbors, function(neighbors) {
+    intersect(neighbors, node_ids)
+  }) 
+  
+  nNode<-vcount(network)
+  node_status <- rep.int(0, nNode)
+  neighbour_status<-rep.int(0, nNode) ##percentage of adopted neighbours
+  new_infected <- list()
+  day_total_infected <- rep(0,28) ### Total number of active people by end of each day
+
+  ### Day 1 ####
+  day <- 1 
+  node_status[as.numeric((node_seed))] <- 1 
+  new_infected[[day]] <-node_seed 
+  day_total_infected[day]=sum(node_status == 1) 
+
+  for (day in c(2:28)){
+    NotAdopted <- which(node_status == 0) 
+    Adopted <- which(node_status == 1)
+    neighbour_status[NotAdopted] <- unlist(lapply(NotAdopted, calculate_adoptedNei, node_status, each_neighbors))
+    new_infected[[day]] <- setdiff(which(neighbour_status > threshold), Adopted)
+    node_status[new_infected[[day]]] <- 1 #update the staus to 1 for those newly adopted
+    day_total_infected[day] <- sum(node_status)
+    day <- day + 1
+  }
+  #return(day_total_infected)
+  return(list(day_total_infected,new_infected)) 
+}
+
+
+tw_pagerank <- ThModel(top_nodes_tw, sub_twitch, twitch_thresh)
+
+
+th_pagerank
+```
